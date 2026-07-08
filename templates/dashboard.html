@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>グランドダムズ県央店 出玉分析ダッシュボード</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary-color: #ff3366;
+            --primary-gradient: linear-gradient(135deg, #ff3366 0%, #ff6633 100%);
+            --accent-color: #00f2fe;
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-color: #00e676;
+            --danger-color: #ff1744;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding-bottom: 50px;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(255, 51, 102, 0.05) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(0, 242, 254, 0.05) 0px, transparent 50%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 0;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-meta {
+            text-align: right;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .kpi-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .kpi-value.plus {
+            background: linear-gradient(135deg, #00e676 0%, #b9f6ca 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Layout grids */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid var(--primary-color);
+            padding-left: 12px;
+        }
+
+        /* Tables styling */
+        .table-container {
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            padding: 14px 16px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-plus {
+            background-color: rgba(0, 230, 118, 0.15);
+            color: var(--success-color);
+        }
+
+        .badge-minus {
+            background-color: rgba(255, 23, 68, 0.15);
+            color: var(--danger-color);
+        }
+
+        .badge-score {
+            background: var(--primary-gradient);
+            color: #fff;
+        }
+
+        /* Predict target selector */
+        .predict-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .date-select-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .date-select-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .header-meta {
+                text-align: left;
+            }
+        }
+
+        /* 傾向サマリー用スタイル */
+        .trends-card {
+            background: linear-gradient(135deg, rgba(26, 37, 48, 0.95), rgba(15, 22, 33, 0.98));
+            border-left: 5px solid var(--accent-color);
+            margin-bottom: 30px;
+        }
+        .trends-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 992px) {
+            .trends-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .setting-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px dashed rgba(255, 51, 102, 0.3);
+        }
+
+        /* 更新ボタンとローダー */
+        .update-btn-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-update {
+            background: var(--primary-gradient);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-update:hover {
+            transform: scale(1.03);
+            opacity: 0.9;
+        }
+
+        .btn-update:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loader-text {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* 実績カレンダー用スタイル */
+        .calendar-card {
+            margin-bottom: 30px;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+        .calendar-day-label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            padding: 8px 0;
+        }
+        .calendar-cell {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px 5px;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+        .calendar-cell:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .calendar-cell .day-num {
+            font-family: 'Outfit', sans-serif;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-align: left;
+            padding-left: 5px;
+        }
+        .calendar-cell .day-diff {
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .calendar-cell .day-winrate {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .calendar-cell.zero-day {
+            border: 1px solid rgba(0, 230, 118, 0.5);
+            background: rgba(0, 230, 118, 0.02);
+        }
+        .calendar-cell.five-day {
+            border: 1px solid rgba(255, 23, 68, 0.5);
+            background: rgba(255, 23, 68, 0.02);
+        }
+        .calendar-cell.win-green {
+            background: rgba(0, 230, 118, 0.15);
+        }
+        .calendar-cell.win-red {
+            background: rgba(255, 23, 68, 0.15);
+        }
+        .calendar-nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .calendar-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 据え置き・上げ傾向メーター */
+        .habit-meter-container {
+            margin-top: 15px;
+        }
+        .habit-meter-bar {
+            display: flex;
+            height: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #2d3748;
+            margin: 10px 0;
+            border: 1px solid var(--card-border);
+        }
+        .habit-meter-raise {
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: width 0.3s;
+        }
+        .habit-meter-keep {
+            background: var(--success-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: width 0.3s;
+        }
+        .habit-legend {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* 曜日別リスト */
+        .weekday-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .weekday-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .weekday-card.today {
+            border: 1px solid var(--accent-color);
+            background: rgba(255, 51, 102, 0.05);
+        }
+        .weekday-name {
+            font-weight: bold;
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 3px;
+        }
+        .weekday-machine-item {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <div id="local-file-warning" style="display: none; background-color: #ff1744; color: #fff; padding: 15px; text-align: center; font-weight: bold; font-size: 1.1rem; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        ⚠️ 警告: ダッシュボードが直接ファイルとして開かれています！データ更新や日付選択機能は正常に動作しません。必ず「start.bat」をダブルクリックして起動してください。
+    </div>
+    <div class="container">
+        <header>
+            <div>
+                <h1>グランドダムズ県央店 出玉分析</h1>
+                <p style="color: var(--text-muted); margin-top: 5px;">データ収集元: みんレポ ＆ 台データオンライン</p>
+            </div>
+            <div class="header-meta">
+                <div class="update-btn-container" style="margin-bottom: 10px; justify-content: flex-end;">
+                    <span id="update-status" class="loader-text" style="display: none;"></span>
+                    <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
+                    <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
+                </div>
+                <p>ダッシュボード生成日時: {{ generated_at }}</p>
+                <p>蓄積データ期間: {{ start_date }} ～ {{ end_date }}</p>
+            </div>
+        </header>
+
+        <!-- 店舗実績カレンダー -->
+        <div class="card calendar-card">
+            <div class="calendar-header">
+                <div class="card-title" style="margin-bottom: 0;">📅 店舗営業実績カレンダー (直近90日)</div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀ 前月</button>
+                    <span id="calendar-month-label" style="font-weight: bold; font-size: 1.1rem; min-width: 100px; text-align: center;">-</span>
+                    <button class="calendar-nav-btn" onclick="changeMonth(1)">次月 ▶</button>
+                </div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
+                各日付の平均差枚数と勝率を可視化（緑＝好調 🌟、赤＝回収・不調 ⚠️）。枠線付きは特定日（緑枠＝0のつく日、赤枠＝5のつく日）です。マスをクリックすると、その日の予測詳細に飛べます。
+            </p>
+            <div class="calendar-grid" id="calendar-grid-header">
+                <div class="calendar-day-label">日</div>
+                <div class="calendar-day-label">月</div>
+                <div class="calendar-day-label">火</div>
+                <div class="calendar-day-label">水</div>
+                <div class="calendar-day-label">木</div>
+                <div class="calendar-day-label">金</div>
+                <div class="calendar-day-label">土</div>
+            </div>
+            <div class="calendar-grid" id="calendar-days-container">
+                <!-- JSで動的生成 -->
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">収集データ日数</div>
+                <div class="kpi-value">{{ total_days }} 日</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">特定日 平均差枚 (0のつく日)</div>
+                <div class="kpi-value plus">{{ avg_diff_zero }} 枚</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">特定日 平均差枚 (5のつく日)</div>
+                <div class="kpi-value plus">{{ avg_diff_five }} 枚</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">通常営業日 平均差枚</div>
+                <div class="kpi-value {% if avg_diff_normal > 0 %}plus{% endif %}">{{ avg_diff_normal }} 枚</div>
+            </div>
+        </div>
+
+        <!-- 直近の出玉傾向 ＆ 設定推測サマリー -->
+        <div class="card trends-card" style="margin-top: 30px;">
+            <div class="card-title" style="color: var(--accent-color); font-size: 1.3rem;">📊 直近7営業日の出玉傾向 ＆ 設定投入推測</div>
+            <div class="trends-grid">
+                <!-- 左カラム: テキスト要約と設定分析 -->
+                <div>
+                    <p style="line-height: 1.6; font-size: 1.05rem; margin-bottom: 20px;">
+                        {{ recent_trends.summary_text }}
+                    </p>
+                    
+                    <div class="setting-box">
+                        <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 12px; font-size: 0.95rem;">🎯 データ分析から見る設定濃厚台 (5,000G以上稼働 ＆ 差枚+2,000枚以上)</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                            <div style="flex: 1; min-width: 180px;">
+                                <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">高設定濃厚台が多かった機種</div>
+                                {% if recent_trends.top_machines %}
+                                    <ul style="list-style: none; padding-left: 0; margin: 0;">
+                                    {% for m in recent_trends.top_machines %}
+                                        <li style="margin-bottom: 4px; font-size: 0.9rem;">
+                                            🔥 <span style="font-weight: 600; color: #fff;">{{ m.machine_name }}</span>: <strong style="color: var(--accent-color);">{{ m.count }} 台</strong>
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span style="font-size: 0.9rem; color: var(--text-muted);">データなし</span>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; min-width: 150px;">
+                                <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">高設定濃厚台が多かった末尾</div>
+                                {% if recent_trends.top_digits %}
+                                    <ul style="list-style: none; padding-left: 0; margin: 0;">
+                                    {% for d in recent_trends.top_digits %}
+                                        <li style="margin-bottom: 4px; font-size: 0.9rem;">
+                                            ⭐ <span style="font-weight: 600; color: #fff;">末尾 {{ d.last_digit }}</span>: <strong style="color: var(--primary-color);">{{ d.count }} 台</strong>
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span style="font-size: 0.9rem; color: var(--text-muted);">データなし</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右カラム: 直近の機種別平均差枚トップ5 -->
+                <div>
+                    <div style="font-weight: bold; margin-bottom: 10px; font-size: 0.95rem; color: #fff;">📈 直近7日間の機種別 平均差枚数トップ5</div>
+                    <div class="table-container" style="background: rgba(0,0,0,0.1); border-radius: 8px;">
+                        <table style="font-size: 0.9rem;">
+                            <thead>
+                                <tr>
+                                    <th>機種名</th>
+                                    <th>累計台数</th>
+                                    <th>平均差枚</th>
+                                    <th>勝率</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_trends.recent_machines %}
+                                    {% for m in recent_trends.recent_machines %}
+                                    <tr>
+                                        <td style="font-weight: 600; color: #fff;">{{ m.machine_name }}</td>
+                                        <td>{{ m.total_installed }} 台</td>
+                                        <td>
+                                            <span style="font-weight: 600; color: {% if m.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                                {{ "{:+,}".format(m.avg_diff|int) }}枚
+                                            </span>
+                                        </td>
+                                        <td>{{ m.win_rate|round(1) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 15px;">データが蓄積されていません</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- グラフセクション (Plotly) -->
+        <div class="grid-2">
+            <!-- イベント日別比較 -->
+            <div class="card">
+                <div class="card-title">特定日ごとの比較</div>
+                <div id="day-type-chart" style="height: 350px;"></div>
+            </div>
+            <!-- 末尾番号のパフォーマンス -->
+            <div class="card">
+                <div class="card-title">台番号 末尾別の平均差枚</div>
+                <div id="last-digit-chart" style="height: 350px;"></div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <!-- 機種別ランキング -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-title">優秀機種ランキング (上位20機種)</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>順位</th>
+                                <th>機種名</th>
+                                <th>データ日数</th>
+                                <th>累計設置台数</th>
+                                <th>総差枚</th>
+                                <th>1台あたり平均差枚</th>
+                                <th>勝率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for index, row in machine_stats.iterrows() %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: #fff;">{{ row['machine_name'] }}</td>
+                                <td>{{ row['recorded_days'] }} 日</td>
+                                <td>{{ row['total_installed'] }} 台</td>
+                                <td>
+                                    <span class="badge {% if row['sum_diff'] >= 0 %}badge-plus{% else %}badge-minus{% endif %}">
+                                        {{ "{:+,}".format(row['sum_diff']) }}枚
+                                    </span>
+                                </td>
+                                <td>
+                                    <span style="font-weight: 600; color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                        {{ "{:+,}".format(row['avg_diff']) }}枚
+                                    </span>
+                                </td>
+                                <td>{{ row['win_rate'] }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 設定投入癖 ＆ 並び検知分析 -->
+        <div class="grid-2" style="margin-top: 30px;">
+            <!-- 左側: 設定変更傾向 ＆ 曜日癖 -->
+            <div>
+                <!-- 設定変更癖 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-title">🔄 設定変更傾向 (上げ狙い vs 据え置き狙い)</div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
+                        前日大幅マイナス台（-1,500枚以下）と、前日大幅プラス台（+1,500枚以上）の翌日の出玉成績を分析。
+                    </p>
+                    <div class="habit-meter-container">
+                        <div class="habit-legend">
+                            <span style="color: var(--accent-color); font-weight: bold;">上げ狙い ({{ setting_habits.raise_ratio }}%)</span>
+                            <span style="color: var(--success-color); font-weight: bold;">据え置き ({{ setting_habits.keep_ratio }}%)</span>
+                        </div>
+                        <div class="habit-meter-bar">
+                            <div class="habit-meter-raise" style="width: {{ setting_habits.raise_ratio }}%">上げ</div>
+                            <div class="habit-meter-keep" style="width: {{ setting_habits.keep_ratio }}%">据え置き</div>
+                        </div>
+                        <p style="font-size: 0.9rem; line-height: 1.5; color: #fff; margin-top: 10px;">
+                            <strong>診断結果:</strong> {{ setting_habits.verdict }}
+                        </p>
+                        <div style="display: flex; gap: 15px; margin-top: 15px; font-size: 0.8rem; color: var(--text-muted);">
+                            <div>凹み翌日平均: <span style="font-weight: 600; color: #fff;">{{ "{:+,}".format(setting_habits.raise_avg_diff) }}枚</span> (勝率: {{ setting_habits.raise_win_rate }}%)</div>
+                            <div>好調翌日平均: <span style="font-weight: 600; color: #fff;">{{ "{:+,}".format(setting_habits.keep_avg_diff) }}枚</span> (勝率: {{ setting_habits.keep_win_rate }}%)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 曜日癖 -->
+                <div class="card">
+                    <div class="card-title">📅 曜日別の特選おすすめ機種</div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px;">
+                        曜日ごとの機種平均差枚データから、各曜日で好成績を残している代表機種。
+                    </p>
+                    <div class="weekday-grid">
+                        {% for day, machines in weekday_trends.items() %}
+                        <div class="weekday-card" id="weekday-card-{{ day }}">
+                            <div class="weekday-name">{{ day }}曜日</div>
+                            {% if machines %}
+                                {% for m in machines %}
+                                <div class="weekday-machine-item" title="{{ m.machine_name }}">
+                                    🏆 {{ m.machine_name }}
+                                </div>
+                                <div style="font-size: 0.7rem; color: var(--success-color); margin-bottom: 5px;">
+                                    {{ "{:+,}".format(m.avg_diff) }}枚 ({{ m.win_rate }}%)
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="weekday-machine-item" style="color: var(--text-muted);">なし</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側: 並び（塊）検知 -->
+            <div class="card">
+                <div class="card-title">🔥 3台並び設定ブロック (高信頼度検出)</div>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
+                    「3台すべて3,000G以上」「3台すべてプラス差枚」「3台合計が+4,500枚以上」を満たした、偶然ではない<strong>確実な並び高設定</strong>の履歴（直近15日）。
+                </p>
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>日付</th>
+                                <th>台番号</th>
+                                <th>機種名</th>
+                                <th>合計差枚</th>
+                                <th>詳細</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if detected_blocks %}
+                                {% for b in detected_blocks %}
+                                <tr>
+                                    <td style="font-size: 0.85rem; white-space: nowrap;">{{ b.date }}</td>
+                                    <td style="font-weight: 600; color: #fff; text-align: center;">{{ b.slots }}</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color);">{{ b.machines }}</td>
+                                    <td>
+                                        <span class="badge badge-plus" style="font-weight: 800;">
+                                            {{ "{:+,}".format(b.total_diff) }}枚
+                                        </span>
+                                    </td>
+                                    <td style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;">{{ b.details }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                        しきい値を満たす確実な並び出玉は検出されませんでした（単発ピンポイント設定メイン）。
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 期待台予測スコアリング -->
+        <div class="card" style="margin-top: 30px;">
+            <div class="predict-header">
+                <div class="card-title" style="margin-bottom: 0;">狙い台予測 (AIスコアリング)</div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: var(--text-muted); font-weight: 600;">予測対象日:</span>
+                    <input type="date" id="predict-date-picker" class="date-select-btn" value="{{ predict_date }}" onchange="loadPredictions()" style="padding: 10px 15px; font-size: 1rem; border: 1px solid var(--primary-color);">
+                </div>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">
+                ※このリストは、過去の特定日の強さ、機種別平均差枚、末尾別の勝率、前日の最終差枚数（設定上げ狙い）などを総合的にスコア化（加算評価）したものです。
+            </p>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>予測順位</th>
+                            <th>台番号</th>
+                            <th>機種名</th>
+                            <th>過去取得データ数</th>
+                            <th>台の過去平均差枚</th>
+                            <th>機種の過去平均差枚</th>
+                            <th>前日最終差枚</th>
+                            <th>総合期待スコア</th>
+                        </tr>
+                    </thead>
+                    <tbody id="predictions-tbody">
+                        {% for index, row in predictions.iterrows() %}
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#{{ loop.index }}</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
+                                {{ row['slot_number'] }}
+                            </td>
+                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
+                            <td>{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                    {{ "{:+,}".format(row['avg_diff']) }}
+                                </span>
+                            </td>
+                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td>
+                                <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
+                                    {{ "{:+,}".format(row['last_diff']) if row['last_diff'] != 0 else '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
+                                    {{ row['score'] }} pts
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- オススメ機種検証レポート -->
+        <div class="card" style="margin-top: 30px;">
+            <div class="card-title">🔍 ホール公約・オススメ機種の実績検証</div>
+            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">
+                店舗ホームページやLINE等で「今週のオススメ」「新台入替」などと謳われた機種を登録し、その指定期間内に本当に設定が使われていたか（実際の平均差枚数・勝率・高設定台数の実績）を検証します。
+            </p>
+            
+            <!-- 登録フォーム -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                <h4 style="color: #fff; margin-bottom: 15px; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <span>➕ オススメ指定機種の登録</span>
+                </h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">対象機種名</label>
+                        <select id="rec-machine-select" style="width: 100%; padding: 10px; border-radius: 6px; background: #222; border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                            <option value="">-- 機種名を選択 --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">開始日</label>
+                        <input type="date" id="rec-start-date" style="padding: 10px; border-radius: 6px; background: #222; border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">終了日</label>
+                        <input type="date" id="rec-end-date" style="padding: 10px; border-radius: 6px; background: #222; border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">区分 / メモ</label>
+                        <select id="rec-label-select" style="width: 100%; padding: 10px; border-radius: 6px; background: #222; border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                            <option value="週間オススメ">週間オススメ</option>
+                            <option value="オススメ機種">オススメ機種</option>
+                            <option value="新台入替">新台入替</option>
+                            <option value="店長イチオシ">店長イチオシ</option>
+                            <option value="取材対象">取材対象</option>
+                        </select>
+                    </div>
+                    <button onclick="registerRecommendation()" class="btn btn-update" style="padding: 11px 25px; margin: 0; background: linear-gradient(135deg, var(--primary-color) 0%, #1d7c9f 100%);">登録・検証する</button>
+                </div>
+                <div id="rec-form-error" style="color: var(--danger-color); font-size: 0.85rem; margin-top: 10px; display: none;"></div>
+            </div>
+
+            <!-- 検証テーブル -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>機種名</th>
+                            <th>指定期間</th>
+                            <th>区分</th>
+                            <th>総稼働台数</th>
+                            <th>1台あたり平均差枚</th>
+                            <th>平均勝率</th>
+                            <th>高設定濃厚台数</th>
+                            <th>判定・アクション</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recommend-tbody">
+                        {% if recommendations %}
+                            {% for r in recommendations %}
+                            <tr id="rec-row-{{ r.id }}">
+                                <td style="font-weight: 600; color: var(--accent-color);">{{ r.machine_name }}</td>
+                                <td style="font-size: 0.9rem; font-family: monospace;">{{ r.start_date }} 〜 {{ r.end_date }}</td>
+                                <td>
+                                    <span style="font-size:0.75rem; background:rgba(255,255,255,0.05); padding:3px 8px; border-radius:4px; color: var(--text-muted);">
+                                        {{ r.label }}
+                                    </span>
+                                </td>
+                                <td>{{ r.total_slots }} 台</td>
+                                <td>
+                                    <span style="color: {% if r.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-weight: bold;">
+                                        {{ "{:+,}".format(r.avg_diff) }}枚
+                                    </span>
+                                </td>
+                                <td>{{ r.win_rate }}%</td>
+                                <td>
+                                    <span class="badge {% if r.high_settings_count > 0 %}badge-plus{% else %}badge-minus{% endif %}">
+                                        {{ r.high_settings_count }} 台
+                                    </span>
+                                </td>
+                                <td style="white-space: nowrap;">
+                                    {% if r.total_slots == 0 %}
+                                        <span style="color: var(--text-muted); font-size:0.8rem; margin-right:15px;">データなし</span>
+                                    {% elif r.avg_diff >= 150 %}
+                                        <span style="color: var(--success-color); font-weight:bold; font-size:0.85rem; margin-right:15px;">🔥 超優良 (本物)</span>
+                                    {% elif r.avg_diff >= 0 %}
+                                        <span style="color: var(--accent-color); font-weight:bold; font-size:0.85rem; margin-right:15px;">👍 プラス (推奨)</span>
+                                    {% else %}
+                                        <span style="color: var(--danger-color); font-weight:bold; font-size:0.85rem; margin-right:15px;">⚠️ ガセ傾向</span>
+                                    {% endif %}
+                                    <button onclick="deleteRecommendation({{ r.id }})" style="background: rgba(235, 94, 85, 0.1); border: 1px solid rgba(235, 94, 85, 0.3); color: var(--danger-color); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">削除</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="rec-empty-row">
+                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                                    現在、登録されている検証データはありません。上のフォームからオススメ機種を登録してください。
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- グラフ用スクリプト -->
+    <script>
+        const darkThemeLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#9ca3af', family: 'Inter, sans-serif' },
+            xaxis: { gridcolor: 'rgba(255,255,255,0.05)', zerolinecolor: 'rgba(255,255,255,0.1)' },
+            yaxis: { gridcolor: 'rgba(255,255,255,0.05)', zerolinecolor: 'rgba(255,255,255,0.1)' },
+            margin: { t: 40, b: 40, l: 60, r: 20 },
+            showlegend: false
+        };
+
+        // 1. 特定日ごとの比較グラフ
+        const dayTypes = [{% for index, row in day_stats.iterrows() %}'{{ row['day_type'] }}',{% endfor %}];
+        const dayDiffs = [{% for index, row in day_stats.iterrows() %}{{ row['avg_diff_per_machine'] }},{% endfor %}];
+        const dayWinRates = [{% for index, row in day_stats.iterrows() %}{{ row['avg_winning_rate'] }},{% endfor %}];
+
+        const dayTypeTrace = {
+            x: dayTypes,
+            y: dayDiffs,
+            type: 'bar',
+            marker: {
+                color: dayTypes.map(t => t.includes('通常') ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 51, 102, 0.8)'),
+                line: { width: 0 }
+            },
+            text: dayDiffs.map(v => v + ' 枚'),
+            textposition: 'auto'
+        };
+        
+        Plotly.newPlot('day-type-chart', [dayTypeTrace], {
+            ...darkThemeLayout,
+            yaxis: { ...darkThemeLayout.yaxis, title: '1台あたり平均差枚(枚)' }
+        });
+
+        // 2. 末尾別グラフ
+        const digits = [{% for index, row in digit_stats.iterrows() %}'末尾 {{ row['last_digit'] }}',{% endfor %}];
+        const digitDiffs = [{% for index, row in digit_stats.iterrows() %}{{ row['avg_diff'] }},{% endfor %}];
+        const digitWinRates = [{% for index, row in digit_stats.iterrows() %}{{ row['win_rate'] }},{% endfor %}];
+
+        const digitTrace = {
+            x: digits,
+            y: digitDiffs,
+            type: 'bar',
+            marker: {
+                color: digitDiffs.map(v => v >= 0 ? '#00e676' : '#ff1744'),
+                opacity: 0.85
+            },
+            text: digitDiffs.map(v => (v > 0 ? '+' : '') + v),
+            textposition: 'outside'
+        };
+
+        Plotly.newPlot('last-digit-chart', [digitTrace], {
+            ...darkThemeLayout,
+            yaxis: { ...darkThemeLayout.yaxis, title: '平均差枚(枚)' }
+        });
+
+        // 3. データ更新 API 連携
+        function triggerUpdate() {
+            const btn = document.getElementById('btn-update-data');
+            const btnGoraggio = document.getElementById('btn-update-goraggio');
+            const statusText = document.getElementById('update-status');
+            
+            btn.disabled = true;
+            if (btnGoraggio) btnGoraggio.disabled = true;
+            btn.textContent = '更新要求中...';
+            statusText.style.display = 'inline';
+            statusText.textContent = '準備中...';
+            
+            fetch('/api/update', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Update started', data);
+                    // 1秒ごとにステータスをポーリング
+                    const interval = setInterval(() => {
+                        fetch('/api/status')
+                            .then(res => res.json())
+                            .then(status => {
+                                statusText.textContent = status.message;
+                                if (status.status === 'done') {
+                                    clearInterval(interval);
+                                    statusText.textContent = 'ダッシュボードを再構築中...';
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 1000);
+                                } else if (status.status === 'error') {
+                                    clearInterval(interval);
+                                    statusText.textContent = 'エラーが発生しました: ' + status.message;
+                                    btn.disabled = false;
+                                    if (btnGoraggio) btnGoraggio.disabled = false;
+                                    btn.textContent = 'データを手動取得';
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Status fetch error', err);
+                            });
+                    }, 1000);
+                })
+                .catch(err => {
+                    console.error('Trigger update error', err);
+                    statusText.textContent = 'リクエストに失敗しました。';
+                    btn.disabled = false;
+                    if (btnGoraggio) btnGoraggio.disabled = false;
+                    btn.textContent = 'データを手動取得';
+                });
+        }
+
+        // 3-2. 通常営業日データ回収（ゴラッジョ）API 連携
+        function triggerGoraggioUpdate() {
+            const btn = document.getElementById('btn-update-data');
+            const btnGoraggio = document.getElementById('btn-update-goraggio');
+            const statusText = document.getElementById('update-status');
+            
+            btn.disabled = true;
+            if (btnGoraggio) {
+                btnGoraggio.disabled = true;
+                btnGoraggio.textContent = '回収要求中...';
+            }
+            statusText.style.display = 'inline';
+            statusText.textContent = '準備中...';
+            
+            fetch('/api/scrape/goraggio', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Goraggio update started', data);
+                    const interval = setInterval(() => {
+                        fetch('/api/status')
+                            .then(res => res.json())
+                            .then(status => {
+                                statusText.textContent = status.message;
+                                if (status.status === 'done') {
+                                    clearInterval(interval);
+                                    statusText.textContent = 'ダッシュボードを再構築中...';
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 1000);
+                                } else if (status.status === 'error') {
+                                    clearInterval(interval);
+                                    statusText.textContent = 'エラー: ' + status.message;
+                                    btn.disabled = false;
+                                    if (btnGoraggio) {
+                                        btnGoraggio.disabled = false;
+                                        btnGoraggio.textContent = '通常営業日データを回収 (直近8日分)';
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Status fetch error', err);
+                            });
+                    }, 1000);
+                })
+                .catch(err => {
+                    console.error('Trigger goraggio update error', err);
+                    statusText.textContent = 'リクエストに失敗しました。';
+                    btn.disabled = false;
+                    if (btnGoraggio) {
+                        btnGoraggio.disabled = false;
+                        btnGoraggio.textContent = '通常営業日データを回収 (直近8日分)';
+                    }
+                });
+        }
+
+        // 4. 動的狙い台予測ロード API
+        function loadPredictions() {
+            const datePicker = document.getElementById('predict-date-picker');
+            const tbody = document.getElementById('predictions-tbody');
+            const date = datePicker.value;
+            
+            if (!date) return;
+            
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--accent-color); padding: 30px;">予測データを再計算中...</td></tr>';
+            
+            fetch(`/api/predict?date=${date}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">エラー: ${data.error}</td></tr>`;
+                        return;
+                    }
+                    
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付のデータが不足しているか、予測できません。</td></tr>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    data.forEach((row, idx) => {
+                        const diffVal = row.avg_diff;
+                        const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                        const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString();
+                        
+                        const mDiffVal = row.machine_avg_diff;
+                        const mDiffText = (mDiffVal >= 0 ? '+' : '') + mDiffVal.toLocaleString();
+                        
+                        const lastDiffVal = row.last_diff;
+                        const lastDiffColor = lastDiffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                        const lastDiffText = lastDiffVal !== 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
+                        
+                        html += `
+                            <tr>
+                                <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#${idx + 1}</td>
+                                <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
+                                    ${row.slot_number}
+                                </td>
+                                <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
+                                <td>${row.recorded_days}日分</td>
+                                <td>
+                                    <span style="color: ${diffColor};">
+                                        ${diffText}
+                                    </span>
+                                </td>
+                                <td>${mDiffText}</td>
+                                <td>
+                                    <span style="color: ${lastDiffColor}; font-size: 0.9rem;">
+                                        ${lastDiffText}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
+                                        ${row.score.toFixed(1)} pts
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('Failed to load predictions', err);
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">データの取得に失敗しました。</td></tr>';
+                });
+        }
+
+        // 4. 動的狙い台予測ロード API
+        function loadPredictions() {
+            const datePicker = document.getElementById('predict-date-picker');
+            const tbody = document.getElementById('predictions-tbody');
+            const date = datePicker.value;
+            
+            if (!date) return;
+            
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--accent-color); padding: 30px;">予測データを再計算中...</td></tr>';
+            
+            fetch(`/api/predict?date=${date}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">エラー: ${data.error}</td></tr>`;
+                        return;
+                    }
+                    
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付のデータが不足しているか、予測できません。</td></tr>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    data.forEach((row, idx) => {
+                        const diffVal = row.avg_diff;
+                        const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                        const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString();
+                        
+                        const mDiffVal = row.machine_avg_diff;
+                        const mDiffText = (mDiffVal >= 0 ? '+' : '') + mDiffVal.toLocaleString();
+                        
+                        const lastDiffVal = row.last_diff;
+                        const lastDiffColor = lastDiffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                        const lastDiffText = lastDiffVal !== 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
+                        
+                        html += `
+                            <tr>
+                                <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#${idx + 1}</td>
+                                <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
+                                    ${row.slot_number}
+                                </td>
+                                <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
+                                <td>${row.recorded_days}日分</td>
+                                <td>
+                                    <span style="color: ${diffColor};">
+                                        ${diffText}
+                                    </span>
+                                </td>
+                                <td>${mDiffText}</td>
+                                <td>
+                                    <span style="color: ${lastDiffColor}; font-size: 0.9rem;">
+                                        ${lastDiffText}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
+                                        ${row.score.toFixed(1)} pts
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('Failed to load predictions', err);
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">データの取得に失敗しました。</td></tr>';
+                });
+        }
+
+        // 5. 実績カレンダー描画ロジック
+        const calendarRawData = {{ calendar_data | tojson }};
+        const calendarMap = {};
+        calendarRawData.forEach(item => {
+            calendarMap[item.date] = item;
+        });
+
+        let currentCalendarDate = new Date();
+        if (calendarRawData.length > 0) {
+            currentCalendarDate = new Date(calendarRawData[calendarRawData.length - 1].date);
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendar-days-container');
+            const label = document.getElementById('calendar-month-label');
+            
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            label.textContent = `${year}年 ${month + 1}月`;
+            container.innerHTML = '';
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-cell';
+                emptyCell.style.opacity = '0.1';
+                container.appendChild(emptyCell);
+            }
+            
+            for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell';
+                
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                
+                const dayLabel = document.createElement('div');
+                dayLabel.className = 'day-num';
+                dayLabel.textContent = dayNum;
+                cell.appendChild(dayLabel);
+                
+                if (dayNum % 10 === 0) {
+                    cell.classList.add('zero-day');
+                    dayLabel.style.color = '#00e676';
+                    dayLabel.innerHTML += ' <span style="font-size:0.65rem; padding: 2px 4px; background: rgba(0,230,118,0.2); border-radius:4px;">特定日</span>';
+                } else if (dayNum % 10 === 5) {
+                    cell.classList.add('five-day');
+                    dayLabel.style.color = '#ff1744';
+                    dayLabel.innerHTML += ' <span style="font-size:0.65rem; padding: 2px 4px; background: rgba(255,23,68,0.2); border-radius:4px;">特定日</span>';
+                }
+                
+                if (calendarMap[dateStr]) {
+                    const data = calendarMap[dateStr];
+                    
+                    if (data.avg_diff >= 150) {
+                        cell.classList.add('win-green');
+                    } else if (data.avg_diff <= -50) {
+                        cell.classList.add('win-red');
+                    }
+                    
+                    const diffEl = document.createElement('div');
+                    diffEl.className = 'day-diff';
+                    diffEl.style.color = data.avg_diff >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                    diffEl.textContent = (data.avg_diff >= 0 ? '+' : '') + data.avg_diff + '枚';
+                    
+                    const winrateEl = document.createElement('div');
+                    winrateEl.className = 'day-winrate';
+                    winrateEl.textContent = `勝率:${data.win_rate}% (${data.total_machines}台)`;
+                    
+                    cell.appendChild(diffEl);
+                    cell.appendChild(winrateEl);
+                    
+                    cell.style.cursor = 'pointer';
+                    cell.onclick = () => {
+                        const picker = document.getElementById('predict-date-picker');
+                        if (picker && !picker.disabled) {
+                            picker.value = dateStr;
+                            loadPredictions();
+                            picker.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    };
+                } else {
+                    const noDataEl = document.createElement('div');
+                    noDataEl.style.fontSize = '0.75rem';
+                    noDataEl.style.color = 'var(--text-muted)';
+                    noDataEl.textContent = 'データなし';
+                    cell.appendChild(noDataEl);
+                }
+                
+                container.appendChild(cell);
+            }
+        }
+
+        function changeMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        // 初期ロード時に稼働中のステータスがあれば監視を引き継ぐ
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCalendar();
+            
+            // 曜日強調表示
+            const todayNum = new Date().getDay();
+            const weekdayNames = ['日', '月', '火', '水', '木', '金', '土'];
+            const todayJa = weekdayNames[todayNum];
+            const todayCard = document.getElementById(`weekday-card-${todayJa}`);
+            if (todayCard) {
+                todayCard.classList.add('today');
+                todayCard.querySelector('.weekday-name').innerHTML += ' <span style="font-size:0.65rem; background:var(--accent-color); color:#fff; padding:2px 5px; border-radius:4px;">今日</span>';
+            }
+
+            // file:// スキーム起動チェック
+            if (window.location.protocol === 'file:') {
+                document.getElementById('local-file-warning').style.display = 'block';
+                const btn = document.getElementById('btn-update-data');
+                const btnGoraggio = document.getElementById('btn-update-goraggio');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'start.batから起動してください';
+                }
+                if (btnGoraggio) {
+                    btnGoraggio.disabled = true;
+                    btnGoraggio.textContent = 'start.batから起動してください';
+                }
+                const picker = document.getElementById('predict-date-picker');
+                if (picker) {
+                    picker.disabled = true;
+                }
+                return;
+            }
+
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(status => {
+                    if (status.status === 'running') {
+                        const btn = document.getElementById('btn-update-data');
+                        const btnGoraggio = document.getElementById('btn-update-goraggio');
+                        const statusText = document.getElementById('update-status');
+                        
+                        btn.disabled = true;
+                        if (btnGoraggio) btnGoraggio.disabled = true;
+                        
+                        if (status.message.includes('台データ') || status.message.includes('詳細データ') || status.message.includes('回収')) {
+                            if (btnGoraggio) btnGoraggio.textContent = 'データ回収中...';
+                        } else {
+                            btn.textContent = 'データ更新中...';
+                        }
+                        
+                        statusText.style.display = 'inline';
+                        statusText.textContent = status.message;
+                        
+                        const interval = setInterval(() => {
+                            fetch('/api/status')
+                                .then(res => res.json())
+                                .then(status => {
+                                    statusText.textContent = status.message;
+                                    if (status.status === 'done') {
+                                        clearInterval(interval);
+                                        statusText.textContent = 'ダッシュボードを再構築中...';
+                                        setTimeout(() => {
+                                            window.location.reload();
+                                        }, 1000);
+                                    } else if (status.status === 'error') {
+                                        clearInterval(interval);
+                                        statusText.textContent = 'エラーが発生しました: ' + status.message;
+                                        btn.disabled = false;
+                                        if (btnGoraggio) {
+                                            btnGoraggio.disabled = false;
+                                            btnGoraggio.textContent = '通常営業日データを回収 (直近8日分)';
+                                        }
+                                        btn.textContent = 'データを手動取得';
+                                    }
+                                });
+                        }, 1000);
+                    }
+                });
+            
+            // オススメ用機種名リスト取得
+            initMachineSelect();
+        });
+
+        // オススメ機種のセレクトボックス初期化
+        function initMachineSelect() {
+            if (window.location.protocol === 'file:') {
+                // file:// スキーム時は、ダミー防止として「機種名を選択」のままにするか無効化
+                const select = document.getElementById('rec-machine-select');
+                if (select) {
+                    select.disabled = true;
+                    const opt = document.createElement('option');
+                    opt.textContent = 'start.batから起動時のみ利用可能';
+                    select.appendChild(opt);
+                }
+                return;
+            }
+            
+            const select = document.getElementById('rec-machine-select');
+            if (!select) return;
+            
+            fetch('/api/machines')
+                .then(res => res.json())
+                .then(machines => {
+                    machines.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.textContent = m;
+                        select.appendChild(opt);
+                    });
+                })
+                .catch(err => console.error('Failed to load machines list', err));
+        }
+
+        // オススメ機種の新規登録
+        function registerRecommendation() {
+            const machine = document.getElementById('rec-machine-select').value;
+            const start = document.getElementById('rec-start-date').value;
+            const end = document.getElementById('rec-end-date').value;
+            const label = document.getElementById('rec-label-select').value;
+            const errorEl = document.getElementById('rec-form-error');
+            
+            if (errorEl) errorEl.style.display = 'none';
+            
+            if (!machine || !start || !end) {
+                showRecError('機種名、開始日、終了日をすべて入力してください。');
+                return;
+            }
+            
+            if (new Date(start) > new Date(end)) {
+                showRecError('開始日は終了日以前の日付を指定してください。');
+                return;
+            }
+            
+            fetch('/api/recommend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    machine_name: machine,
+                    start_date: start,
+                    end_date: end,
+                    label: label
+                })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.error) {
+                    showRecError(res.error);
+                } else {
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showRecError('登録リクエストに失敗しました。');
+            });
+        }
+        
+        function showRecError(msg) {
+            const errorEl = document.getElementById('rec-form-error');
+            if (errorEl) {
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // オススメ機種の削除
+        function deleteRecommendation(id) {
+            if (!confirm('この検証データを削除しますか？')) return;
+            
+            fetch('/api/recommend/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.error) {
+                    alert('削除に失敗しました: ' + res.error);
+                } else {
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('削除リクエストに失敗しました。');
+            });
+        }
+    </script>
+</body>
+</html>
