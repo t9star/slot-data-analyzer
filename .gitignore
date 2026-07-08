@@ -17,6 +17,7 @@ wheels/
 *.xml
 *.html
 !templates/dashboard.html
+!index.html
 progress.json
 find_hidden_kenou_100k.py
 goraggio_*
