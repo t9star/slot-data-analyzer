@@ -96,10 +96,11 @@ def generate_dashboard():
     machine_stats = analyzer.analyze_machines(min_records=1) # 1回でもデータがあれば表示
     digit_stats = analyzer.analyze_last_digits()
     
-    # 塊検出、曜日癖、設定変更癖の分析
+    # 塊検出、曜日癖、設定変更癖、オススメ機種の分析
     detected_blocks = analyzer.detect_high_confidence_blocks()
     weekday_trends = analyzer.analyze_weekday_machine_trends()
     setting_habits = analyzer.analyze_setting_change_habits()
+    recommendations = analyzer.analyze_recommended_machines()
     
     # 順位ソートなどを調整
     if machine_stats is not None:
@@ -150,7 +151,8 @@ def generate_dashboard():
         calendar_data=calendar_data,
         detected_blocks=detected_blocks,
         weekday_trends=weekday_trends,
-        setting_habits=setting_habits
+        setting_habits=setting_habits,
+        recommendations=recommendations
     )
     
     # ファイルに書き出し

@@ -48,6 +48,18 @@ def init_db():
     )
     """)
 
+    # 4. オススメ機種管理テーブル
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS recommended_machines (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        machine_name TEXT,
+        start_date TEXT,
+        end_date TEXT,
+        label TEXT,
+        created_at TEXT
+    )
+    """)
+
     conn.commit()
     conn.close()
     print("Database initialization completed successfully.")

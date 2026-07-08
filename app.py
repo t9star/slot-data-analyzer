@@ -135,6 +135,74 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/machines', methods=['GET'])
+def get_machines_list():
+    try:
+        conn = analyzer.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT machine_name FROM slot_details ORDER BY machine_name")
+        machines = [row[0] for row in cursor.fetchall() if row[0]]
+        conn.close()
+        return jsonify(machines)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/recommend', methods=['GET'])
+def get_recommendations():
+    try:
+        results = analyzer.analyze_recommended_machines()
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/recommend', methods=['POST'])
+def add_recommendation():
+    data = request.json or {}
+    machine_name = data.get('machine_name')
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    label = data.get('label', '週間オススメ')
+    
+    if not machine_name or not start_date or not end_date:
+        return jsonify({"error": "機種名、開始日、終了日は必須です。"}), 400
+        
+    try:
+        conn = analyzer.get_connection()
+        cursor = conn.cursor()
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("""
+        INSERT INTO recommended_machines (machine_name, start_date, end_date, label, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """, (machine_name, start_date, end_date, label, created_at))
+        conn.commit()
+        conn.close()
+        
+        # ダッシュボード再生成
+        dashboard_generator.generate_dashboard()
+        return jsonify({"status": "success", "message": "オススメ機種を登録しました。"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/recommend/delete', methods=['POST'])
+def delete_recommendation():
+    data = request.json or {}
+    rec_id = data.get('id')
+    if not rec_id:
+        return jsonify({"error": "IDは必須です。"}), 400
+        
+    try:
+        conn = analyzer.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM recommended_machines WHERE id = ?", (rec_id,))
+        conn.commit()
+        conn.close()
+        
+        # ダッシュボード再生成
+        dashboard_generator.generate_dashboard()
+        return jsonify({"status": "success", "message": "登録データを削除しました。"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     # 初期起動時に進捗を初期化
     set_progress("idle", 0, 0, "待機中")

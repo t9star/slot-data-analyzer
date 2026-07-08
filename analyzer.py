@@ -546,6 +546,80 @@ def analyze_setting_change_habits():
         "verdict": verdict
     }
 
+def analyze_recommended_machines():
+    """
+    登録されたおすすめ機種の実績を、指定期間内の差枚・勝率・高設定挙動数から集計して返す
+    """
+    conn = get_connection()
+    # 登録一覧の取得
+    rec_query = "SELECT id, machine_name, start_date, end_date, label FROM recommended_machines ORDER BY created_at DESC"
+    try:
+        recs_df = pd.read_sql_query(rec_query, conn)
+    except Exception:
+        # テーブルがない場合等のフォールバック
+        conn.close()
+        return []
+    
+    if recs_df.empty:
+        conn.close()
+        return []
+        
+    results = []
+    for _, row in recs_df.iterrows():
+        rec_id = int(row['id'])
+        m_name = row['machine_name']
+        start_d = row['start_date']
+        end_d = row['end_date']
+        label = row['label']
+        
+        # 期間内の出玉データの集計
+        # 1. 差枚・勝率・稼働台数
+        stats_query = """
+        SELECT 
+            COUNT(*) as total_slots,
+            AVG(diff) as avg_diff,
+            AVG(winning) as win_rate
+        FROM slot_details
+        WHERE machine_name = ?
+          AND date >= ?
+          AND date <= ?
+        """
+        cursor = conn.cursor()
+        cursor.execute(stats_query, (m_name, start_d, end_d))
+        stats = cursor.fetchone()
+        
+        total_slots = stats[0] if stats[0] is not None else 0
+        avg_diff = int(round(stats[1])) if stats[1] is not None else 0
+        win_rate = round(stats[2] * 100, 1) if stats[2] is not None else 0.0
+        
+        # 2. 高設定濃厚（5000Gかつ+2000枚以上）の発生台数
+        high_setting_query = """
+        SELECT COUNT(*)
+        FROM slot_details
+        WHERE machine_name = ?
+          AND date >= ?
+          AND date <= ?
+          AND games >= 5000
+          AND diff >= 2000
+        """
+        cursor.execute(high_setting_query, (m_name, start_d, end_d))
+        high_settings_count = cursor.fetchone()[0]
+        
+        results.append({
+            "id": rec_id,
+            "machine_name": m_name,
+            "start_date": start_d,
+            "end_date": end_d,
+            "label": label,
+            "total_slots": total_slots,
+            "avg_diff": avg_diff,
+            "win_rate": win_rate,
+            "high_settings_count": high_settings_count
+        })
+        
+    conn.close()
+    return results
+
 if __name__ == "__main__":
     # 簡易テスト
     print("--- Special Days Summary ---")
