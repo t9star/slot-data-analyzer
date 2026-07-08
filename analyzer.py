@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "slot_data.db")
 
@@ -453,14 +453,26 @@ def detect_high_confidence_blocks(min_games=3000, min_diff=100, sum_diff_thresho
 
 def analyze_weekday_machine_trends():
     """
-    曜日別の機種別平均差枚数を計算する
+    曜日別の機種別平均差枚数を計算する (直近90日間の最新トレンドを反映)
     """
     conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(date) FROM machine_stats")
+    max_date_row = cursor.fetchone()
+    
+    if not max_date_row or not max_date_row[0]:
+        conn.close()
+        return {}
+        
+    latest_date = datetime.strptime(max_date_row[0], "%Y-%m-%d")
+    start_date = (latest_date - timedelta(days=90)).strftime("%Y-%m-%d")
+    
     query = """
     SELECT date, machine_name, average_diff, winning_rate, count
     FROM machine_stats
+    WHERE date >= ?
     """
-    df = pd.read_sql_query(query, conn)
+    df = pd.read_sql_query(query, conn, params=(start_date,))
     conn.close()
     
     if df.empty:
