@@ -498,6 +498,114 @@
             </div>
         </div>
 
+        <!-- 期待台予測スコアリング -->
+        <div class="card" style="margin-top: 30px;">
+            <div class="predict-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; margin-bottom: 15px;">
+                <div>
+                    <div class="card-title" style="margin-bottom: 5px;">狙い台予測 (AIスコアリング)</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        現在の学習パラメータ: 
+                        台平均: <span style="color:#fff; font-weight:600;">{{ current_params.weight_slot_avg }}</span> | 
+                        機種平均: <span style="color:#fff; font-weight:600;">{{ current_params.weight_machine_avg }}</span> | 
+                        末尾: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_matching_digit }}</span> | 
+                        ゾロ目: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_zoro_digit }}</span> | 
+                        上げ: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_raise_target }}</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <button id="btn-tune-ai" onclick="tuneAiModel()" class="btn btn-update" style="padding: 10px 18px; margin: 0; background: linear-gradient(135deg, var(--success-color) 0%, #1c7e4c 100%); font-size: 0.9rem; font-weight:bold;">
+                        🤖 AI学習を実行 (精度最適化)
+                    </button>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: var(--text-muted); font-weight: 600; font-size: 0.9rem;">予測対象日:</span>
+                        <input type="date" id="predict-date-picker" class="date-select-btn" value="{{ predict_date }}" onchange="loadPredictions()" style="padding: 8px 12px; font-size: 0.95rem; border: 1px solid var(--primary-color);">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI学習＆精度検証レポート表示エリア -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
+                <div style="flex: 2; min-width: 300px;">
+                    <div style="font-weight: bold; color: var(--accent-color); margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                        <span>🎯 予測モデルの答え合わせレポート (直近特定日)</span>
+                    </div>
+                    {% if accuracy_report %}
+                        <div style="display: flex; gap: 10px; overflow-x: auto;">
+                            {% for r in accuracy_report %}
+                            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; flex: 1; min-width: 140px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">{{ r.date }}</div>
+                                <div style="font-size: 1rem; font-weight: 800; color: {% if r.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                    {{ "{:+,}".format(r.avg_diff) }}枚
+                                </div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    予測上位勝率: {{ r.win_rate }}%
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">
+                            過去の特定日のシミュレーションデータがありません。データを取得してください。
+                        </p>
+                    {% endif %}
+                </div>
+                <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid rgba(255,255,255,0.05); padding-left: 20px;">
+                    <div style="font-size: 0.85rem; font-weight: bold; color: #fff; margin-bottom: 5px;">AI学習チューニングとは？</div>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
+                        過去の特定日における「予測上位20台」が「実際にいくら出たか」をシミュレーションし、最も的中率が高くなるように重みを調整します。データが溜まるほどホールの癖に適合します。
+                    </p>
+                </div>
+            </div>
+            
+            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">
+                ※このリストは、過去の特定日の強さ、機種別平均差枚、末尾別の勝率、前日の最終差枚数（設定上げ狙い）などを総合的にスコア化（加算評価）したものです。
+            </p>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>予測順位</th>
+                            <th>台番号</th>
+                            <th>機種名</th>
+                            <th>過去取得データ数</th>
+                            <th>台の過去平均差枚</th>
+                            <th>機種の過去平均差枚</th>
+                            <th>前日最終差枚</th>
+                            <th>総合期待スコア</th>
+                        </tr>
+                    </thead>
+                    <tbody id="predictions-tbody">
+                        {% for index, row in predictions.iterrows() %}
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#{{ loop.index }}</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
+                                {{ row['slot_number'] }}
+                            </td>
+                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
+                            <td>{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                    {{ "{:+,}".format(row['avg_diff']) }}
+                                </span>
+                            </td>
+                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td>
+                                <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
+                                    {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
+                                    {{ row['score'] }} pts
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- KPI Cards -->
         <div class="kpi-grid">
             <div class="kpi-card">
@@ -722,15 +830,15 @@
                 <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
                     「3台すべて3,000G以上」「3台すべてプラス差枚」「3台合計が+4,500枚以上」を満たした、偶然ではない<strong>確実な並び高設定</strong>の履歴（直近15日）。
                 </p>
-                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>日付</th>
-                                <th>台番号</th>
-                                <th>機種名</th>
-                                <th>合計差枚</th>
-                                <th>詳細</th>
+                                <th style="width: 15%; white-space: nowrap;">日付</th>
+                                <th style="width: 15%; white-space: nowrap;">台番号</th>
+                                <th style="width: 25%;">機種名</th>
+                                <th style="width: 15%; white-space: nowrap;">合計差枚</th>
+                                <th style="width: 30%;">詳細</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -761,113 +869,7 @@
             </div>
         </div>
 
-        <!-- 期待台予測スコアリング -->
-        <div class="card" style="margin-top: 30px;">
-            <div class="predict-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; margin-bottom: 15px;">
-                <div>
-                    <div class="card-title" style="margin-bottom: 5px;">狙い台予測 (AIスコアリング)</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        現在の学習パラメータ: 
-                        台平均: <span style="color:#fff; font-weight:600;">{{ current_params.weight_slot_avg }}</span> | 
-                        機種平均: <span style="color:#fff; font-weight:600;">{{ current_params.weight_machine_avg }}</span> | 
-                        末尾: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_matching_digit }}</span> | 
-                        ゾロ目: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_zoro_digit }}</span> | 
-                        上げ: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_raise_target }}</span>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                    <button id="btn-tune-ai" onclick="tuneAiModel()" class="btn btn-update" style="padding: 10px 18px; margin: 0; background: linear-gradient(135deg, var(--success-color) 0%, #1c7e4c 100%); font-size: 0.9rem; font-weight:bold;">
-                        🤖 AI学習を実行 (精度最適化)
-                    </button>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="color: var(--text-muted); font-weight: 600; font-size: 0.9rem;">予測対象日:</span>
-                        <input type="date" id="predict-date-picker" class="date-select-btn" value="{{ predict_date }}" onchange="loadPredictions()" style="padding: 8px 12px; font-size: 0.95rem; border: 1px solid var(--primary-color);">
-                    </div>
-                </div>
-            </div>
-            
-            <!-- AI学習＆精度検証レポート表示エリア -->
-            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
-                <div style="flex: 2; min-width: 300px;">
-                    <div style="font-weight: bold; color: var(--accent-color); margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
-                        <span>🎯 予測モデルの答え合わせレポート (直近特定日)</span>
-                    </div>
-                    {% if accuracy_report %}
-                        <div style="display: flex; gap: 10px; overflow-x: auto;">
-                            {% for r in accuracy_report %}
-                            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; flex: 1; min-width: 140px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">{{ r.date }}</div>
-                                <div style="font-size: 1rem; font-weight: 800; color: {% if r.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
-                                    {{ "{:+,}".format(r.avg_diff) }}枚
-                                </div>
-                                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
-                                    予測上位勝率: {{ r.win_rate }}%
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p style="font-size: 0.8rem; color: var(--text-muted);">
-                            過去の特定日のシミュレーションデータがありません。データを取得してください。
-                        </p>
-                    {% endif %}
-                </div>
-                <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid rgba(255,255,255,0.05); padding-left: 20px;">
-                    <div style="font-size: 0.85rem; font-weight: bold; color: #fff; margin-bottom: 5px;">AI学習チューニングとは？</div>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
-                        過去の特定日における「予測上位20台」が「実際にいくら出たか」をシミュレーションし、最も的中率が高くなるように重みを調整します。データが溜まるほどホールの癖に適合します。
-                    </p>
-                </div>
-            </div>
-            
-            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">
-                ※このリストは、過去の特定日の強さ、機種別平均差枚、末尾別の勝率、前日の最終差枚数（設定上げ狙い）などを総合的にスコア化（加算評価）したものです。
-            </p>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>予測順位</th>
-                            <th>台番号</th>
-                            <th>機種名</th>
-                            <th>過去取得データ数</th>
-                            <th>台の過去平均差枚</th>
-                            <th>機種の過去平均差枚</th>
-                            <th>前日最終差枚</th>
-                            <th>総合期待スコア</th>
-                        </tr>
-                    </thead>
-                    <tbody id="predictions-tbody">
-                        {% for index, row in predictions.iterrows() %}
-                        <tr>
-                            <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#{{ loop.index }}</td>
-                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
-                                {{ row['slot_number'] }}
-                            </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
-                            <td>{{ row['recorded_days'] }}日分</td>
-                            <td>
-                                <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
-                                    {{ "{:+,}".format(row['avg_diff']) }}
-                                </span>
-                            </td>
-                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
-                            <td>
-                                <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
-                                    {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
-                                    {{ row['score'] }} pts
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+
 
         <!-- オススメ機種検証レポート -->
         <div class="card" style="margin-top: 30px;">
