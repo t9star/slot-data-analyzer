@@ -60,6 +60,25 @@ def init_db():
     )
     """)
 
+    # 5. 予測モデルパラメータテーブル
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS model_parameters (
+        key TEXT PRIMARY KEY,
+        value REAL
+    )
+    """)
+    
+    # デフォルトの初期重みを投入 (存在しない場合のみ)
+    default_params = [
+        ('weight_slot_avg', 0.4),
+        ('weight_machine_avg', 0.3),
+        ('bonus_matching_digit', 250.0),
+        ('bonus_zoro_digit', 80.0),
+        ('bonus_raise_target', 100.0)
+    ]
+    for key, val in default_params:
+        cursor.execute("INSERT OR IGNORE INTO model_parameters (key, value) VALUES (?, ?)", (key, val))
+
     conn.commit()
     conn.close()
     print("Database initialization completed successfully.")

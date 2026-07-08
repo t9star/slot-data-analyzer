@@ -101,6 +101,8 @@ def generate_dashboard():
     weekday_trends = analyzer.analyze_weekday_machine_trends()
     setting_habits = analyzer.analyze_setting_change_habits()
     recommendations = analyzer.analyze_recommended_machines()
+    current_params = analyzer.load_prediction_parameters()
+    accuracy_report = analyzer.get_prediction_accuracy_report(limit=5)
     
     # 順位ソートなどを調整
     if machine_stats is not None:
@@ -152,7 +154,9 @@ def generate_dashboard():
         detected_blocks=detected_blocks,
         weekday_trends=weekday_trends,
         setting_habits=setting_habits,
-        recommendations=recommendations
+        recommendations=recommendations,
+        current_params=current_params,
+        accuracy_report=accuracy_report
     )
     
     # ファイルに書き出し

@@ -128,10 +128,40 @@ def analyze_last_digits(target_day_type=None):
     
     return summary
 
-def predict_next_hot_slots(target_date_str):
+def load_prediction_parameters():
+    """
+    DBの model_parameters テーブルから予測重み設定を読み込む
+    """
+    default_params = {
+        'weight_slot_avg': 0.4,
+        'weight_machine_avg': 0.3,
+        'bonus_matching_digit': 250.0,
+        'bonus_zoro_digit': 80.0,
+        'bonus_raise_target': 100.0
+    }
+    
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT key, value FROM model_parameters")
+        rows = cursor.fetchall()
+        for k, v in rows:
+            if k in default_params:
+                default_params[k] = float(v)
+    except Exception:
+        pass
+    finally:
+        conn.close()
+        
+    return default_params
+
+def predict_next_hot_slots(target_date_str, params=None):
     """
     特定の日付をターゲットにして、期待値の高い台（台番号）を予測スコアリングする
     """
+    if params is None:
+        params = load_prediction_parameters()
+        
     target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
     day = target_date.day
     
@@ -149,6 +179,7 @@ def predict_next_hot_slots(target_date_str):
     conn = get_connection()
     
     # 1. 各台番号の過去データ（直近30営業日のデータに限定して、新台入れ替え等の挙動変化に追従させる）
+    # 注: target_date_str より前のデータのみを対象とする (リーク防止)
     slot_query = """
     WITH ranked_slots AS (
         SELECT 
@@ -159,6 +190,7 @@ def predict_next_hot_slots(target_date_str):
             winning,
             ROW_NUMBER() OVER(PARTITION BY slot_number ORDER BY date DESC) as rn
         FROM slot_details
+        WHERE date < ?
     )
     SELECT 
         slot_number,
@@ -170,7 +202,7 @@ def predict_next_hot_slots(target_date_str):
     WHERE rn <= 30
     GROUP BY slot_number, machine_name
     """
-    slots_df = pd.read_sql_query(slot_query, conn)
+    slots_df = pd.read_sql_query(slot_query, conn, params=(target_date_str,))
     
     # 2. 機種ごとの過去の強さ（平均差枚）
     machine_query = """
@@ -178,9 +210,10 @@ def predict_next_hot_slots(target_date_str):
         machine_name,
         AVG(average_diff) as machine_avg_diff
     FROM machine_stats
+    WHERE date < ?
     GROUP BY machine_name
     """
-    machines_df = pd.read_sql_query(machine_query, conn)
+    machines_df = pd.read_sql_query(machine_query, conn, params=(target_date_str,))
     
     # 3. 前日の最終差枚数（上げ狙い判定用）
     # 直近の営業日データを取得
@@ -216,26 +249,20 @@ def predict_next_hot_slots(target_date_str):
     df['last_digit'] = df['slot_number'] % 10
     
     # スコアリングロジック
-    # 期待値スコア = (台の過去平均差枚 * 0.4) + (機種の過去平均差枚 * 0.3) + 末尾ボーナス + 上げ狙いボーナス
-    
     # 台・機種のベーススコア
-    df['score'] = (df['avg_diff'] * 0.4) + (df['machine_avg_diff'] * 0.3)
+    df['score'] = (df['avg_diff'] * params['weight_slot_avg']) + (df['machine_avg_diff'] * params['weight_machine_avg'])
     
     # 末尾ボーナス
-    # 日付の下一桁と台の下一桁が一致する場合、大幅にプラス
     if matching_digit is not None:
-        df.loc[df['last_digit'] == matching_digit, 'score'] += 150.0
-        # 旧イベ日自体のボーナス
-        df.loc[df['last_digit'] == matching_digit, 'score'] += 100.0
+        df.loc[df['last_digit'] == matching_digit, 'score'] += params['bonus_matching_digit']
         
     # ゾロ目台番号ボーナス (例: 1777, 1888, 2022 などのゾロ目やゾロ目末尾)
-    # 下二桁がゾロ目（11, 22, 33...など）の場合
     df['last_two'] = df['slot_number'] % 100
-    df.loc[(df['last_two'] % 11 == 0) & (df['last_two'] != 0), 'score'] += 80.0
+    df.loc[(df['last_two'] % 11 == 0) & (df['last_two'] != 0), 'score'] += params['bonus_zoro_digit']
     
     # 上げ狙いボーナス（前日凹んでいて、過去平均が良い台）
     # 前日 -1500枚以下で、過去平均がプラスの台にボーナス
-    df.loc[(df['last_diff'] < -1500) & (df['avg_diff'] > 100), 'score'] += 100.0
+    df.loc[(df['last_diff'] < -1500) & (df['avg_diff'] > 100), 'score'] += params['bonus_raise_target']
     
     # スコア順にソートしてトップ20を返す
     df['score'] = df['score'].round(1)
@@ -632,6 +659,156 @@ def analyze_recommended_machines():
         
     conn.close()
     return results
+
+def eval_parameters(target_dates, params):
+    """
+    指定されたパラメータで過去の予測シミュレーションを行い、のべ予測上位20台の「実際の平均差枚数」の平均値を返す
+    """
+    total_diff_sum = 0
+    total_slots_count = 0
+    
+    conn = get_connection()
+    for date_str in target_dates:
+        pred_df = predict_next_hot_slots(date_str, params)
+        if pred_df is None or pred_df.empty:
+            continue
+            
+        slot_list = pred_df['slot_number'].tolist()
+        placeholders = ','.join('?' for _ in slot_list)
+        
+        query = f"SELECT diff FROM slot_details WHERE date = ? AND slot_number IN ({placeholders})"
+        cursor = conn.cursor()
+        cursor.execute(query, [date_str] + slot_list)
+        diffs = [row[0] for row in cursor.fetchall() if row[0] is not None]
+        
+        if diffs:
+            total_diff_sum += sum(diffs)
+            total_slots_count += len(diffs)
+            
+    conn.close()
+    
+    if total_slots_count > 0:
+        return total_diff_sum / total_slots_count
+    return 0.0
+
+def tune_prediction_parameters():
+    """
+    過去の特定日データを使って予測シミュレーションを回し、
+    最も的中精度が高くなる予測重みパラメータを自動探索して保存する
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT date FROM daily_summary 
+        WHERE strftime('%d', date) LIKE '%0' OR strftime('%d', date) LIKE '%5'
+        ORDER BY date DESC LIMIT 5
+    """)
+    target_dates = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    
+    if len(target_dates) < 2:
+        return {"status": "error", "message": "学習に必要な過去の特定日データが不足しています（最低2回分必要）。"}
+        
+    slot_weights = [0.2, 0.5]
+    machine_weights = [0.2, 0.5]
+    matching_bonuses = [150.0, 300.0]
+    zoro_bonuses = [30.0, 90.0]
+    raise_bonuses = [30.0, 120.0]
+    
+    best_score = -999999
+    best_params = None
+    
+    current_params = load_prediction_parameters()
+    before_avg_diff = eval_parameters(target_dates, current_params)
+    
+    for w_slot in slot_weights:
+        for w_mach in machine_weights:
+            for b_match in matching_bonuses:
+                for b_zoro in zoro_bonuses:
+                    for b_raise in raise_bonuses:
+                        candidate = {
+                            'weight_slot_avg': w_slot,
+                            'weight_machine_avg': w_mach,
+                            'bonus_matching_digit': b_match,
+                            'bonus_zoro_digit': b_zoro,
+                            'bonus_raise_target': b_raise
+                        }
+                        score = eval_parameters(target_dates, candidate)
+                        if score > best_score:
+                            best_score = score
+                            best_params = candidate
+                            
+    if best_params:
+        conn = get_connection()
+        cursor = conn.cursor()
+        for k, v in best_params.items():
+            cursor.execute("INSERT OR REPLACE INTO model_parameters (key, value) VALUES (?, ?)", (k, v))
+        conn.commit()
+        conn.close()
+        
+        after_avg_diff = best_score
+        improvement = after_avg_diff - before_avg_diff
+        
+        return {
+            "status": "success",
+            "before_avg_diff": int(round(before_avg_diff)),
+            "after_avg_diff": int(round(after_avg_diff)),
+            "improvement": int(round(improvement)),
+            "updated_params": best_params
+        }
+    else:
+        return {"status": "error", "message": "最適化計算中にエラーが発生しました。"}
+
+def get_prediction_accuracy_report(limit=5):
+    """
+    過去の特定日における予測結果と、実際の出玉実績の答え合わせレポートを生成する
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT date FROM daily_summary 
+        WHERE strftime('%d', date) LIKE '%0' OR strftime('%d', date) LIKE '%5'
+        ORDER BY date DESC LIMIT ?
+    """, (limit,))
+    target_dates = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    
+    if not target_dates:
+        return []
+        
+    report = []
+    params = load_prediction_parameters()
+    
+    conn = get_connection()
+    for date_str in target_dates:
+        pred_df = predict_next_hot_slots(date_str, params)
+        if pred_df is None or pred_df.empty:
+            continue
+            
+        slot_list = pred_df['slot_number'].tolist()
+        placeholders = ','.join('?' for _ in slot_list)
+        
+        query = f"SELECT diff, winning FROM slot_details WHERE date = ? AND slot_number IN ({placeholders})"
+        cursor = conn.cursor()
+        cursor.execute(query, [date_str] + slot_list)
+        rows = cursor.fetchall()
+        
+        diffs = [r[0] for r in rows if r[0] is not None]
+        wins = [r[1] for r in rows if r[1] is not None]
+        
+        if diffs:
+            avg_diff = sum(diffs) / len(diffs)
+            win_rate = (sum(wins) / len(wins) * 100) if wins else 0.0
+            
+            report.append({
+                "date": date_str,
+                "predicted_slots_count": len(diffs),
+                "avg_diff": int(round(avg_diff)),
+                "win_rate": round(win_rate, 1)
+            })
+            
+    conn.close()
+    return report
 
 if __name__ == "__main__":
     # 簡易テスト

@@ -203,6 +203,22 @@ def delete_recommendation():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/predict/tune', methods=['POST'])
+def tune_predictions():
+    progress = get_progress()
+    if progress.get("status") == "running":
+        return jsonify({"status": "already_running", "message": "現在、データ更新処理が実行中です。学習を実行できません。"}), 400
+        
+    try:
+        result = analyzer.tune_prediction_parameters()
+        if result.get("status") == "success":
+            dashboard_generator.generate_dashboard()
+            return jsonify(result)
+        else:
+            return jsonify({"error": result.get("message")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     # 初期起動時に進捗を初期化
     set_progress("idle", 0, 0, "待機中")
