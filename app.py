@@ -254,6 +254,39 @@ def tune_predictions():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/slot/history')
+def slot_history():
+    slot_num = request.args.get('slot_number')
+    if not slot_num:
+        return jsonify({"error": "台番号は必須です。"}), 400
+        
+    try:
+        conn = analyzer.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT date, machine_name, games, diff, winning 
+            FROM slot_details 
+            WHERE slot_number = ? 
+            ORDER BY date DESC 
+            LIMIT 10
+        """, (slot_num,))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        history = []
+        for r in rows:
+            history.append({
+                "date": r[0],
+                "machine_name": r[1],
+                "games": r[2] if r[2] is not None else 0,
+                "diff": r[3] if r[3] is not None else 0,
+                "winning": bool(r[4])
+            })
+            
+        return jsonify({"slot_number": slot_num, "history": history})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     # 初期起動時に進捗を初期化
     set_progress("idle", 0, 0, "待機中")

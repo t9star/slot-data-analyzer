@@ -578,7 +578,7 @@
                         {% for index, row in predictions.iterrows() %}
                         <tr>
                             <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#{{ loop.index }}</td>
-                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
                             <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
@@ -1249,7 +1249,7 @@
                         html += `
                             <tr>
                                 <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#${idx + 1}</td>
-                                <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
+                                <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
                                     ${row.slot_number}
                                 </td>
                                 <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
@@ -1608,6 +1608,102 @@
                     alert('学習リクエストの送信中にエラーが発生しました。');
                 });
         }
+
+        // 台番号個別データ履歴モーダル表示
+        function showSlotHistory(slotNumber) {
+            const modal = document.getElementById('slot-history-modal');
+            const slotNumEl = document.getElementById('modal-slot-number');
+            const machineEl = document.getElementById('modal-slot-machine');
+            const tbody = document.getElementById('modal-history-tbody');
+            
+            slotNumEl.textContent = slotNumber;
+            machineEl.textContent = '読み込み中...';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--accent-color); padding:20px;">履歴データを取得中...</td></tr>';
+            
+            modal.style.display = 'flex';
+            
+            fetch(`/api/slot/history?slot_number=${slotNumber}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger-color); padding:20px;">エラー: ${data.error}</td></tr>`;
+                        return;
+                    }
+                    
+                    if (data.history.length === 0) {
+                        machineEl.textContent = 'データなし';
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">過去10日間のデータが存在しません。</td></tr>';
+                        return;
+                    }
+                    
+                    machineEl.textContent = data.history[0].machine_name;
+                    
+                    let html = '';
+                    data.history.forEach(h => {
+                        const diffVal = h.diff;
+                        const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                        const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString() + ' 枚';
+                        const winBadge = h.winning ? '<span style="background:rgba(28,126,76,0.2); color:var(--success-color); padding:2px 6px; border-radius:4px; font-size:0.75rem;">🌟 勝利</span>' : '<span style="background:rgba(255,255,255,0.03); color:var(--text-muted); padding:2px 6px; border-radius:4px; font-size:0.75rem;">敗北</span>';
+                        
+                        html += `
+                            <tr>
+                                <td style="font-family:monospace;">${h.date}</td>
+                                <td>${h.games.toLocaleString()} G</td>
+                                <td><span style="color:${diffColor}; font-weight:600;">${diffText}</span></td>
+                                <td>${winBadge}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--danger-color); padding:20px;">通信エラーが発生しました。</td></tr>';
+                });
+        }
+        
+        function closeSlotHistory() {
+            document.getElementById('slot-history-modal').style.display = 'none';
+        }
     </script>
+
+    <!-- 台番号個別履歴モーダル -->
+    <div id="slot-history-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div style="background: #111; border: 2px solid var(--primary-color); border-radius: 12px; width: 90%; max-width: 600px; padding: 25px; box-shadow: 0 0 20px rgba(0,186,242,0.3); animation: modalFadeIn 0.3s ease-out;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 15px;">
+                <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                    🎰 <span id="modal-slot-number" style="color: var(--accent-color); font-weight: 800;">-</span> 番台 個別データ履歴 (直近10日)
+                </h3>
+                <span onclick="closeSlotHistory()" style="color: var(--text-muted); cursor: pointer; font-size: 1.5rem; font-weight: bold; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                対象機種: <span id="modal-slot-machine" style="color: #fff; font-weight: 600;">-</span>
+            </div>
+            <div class="table-container" style="max-height: 350px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                <table style="font-size: 0.9rem;">
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>稼働ゲーム数</th>
+                            <th>差枚数</th>
+                            <th>勝敗</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-history-tbody">
+                        <!-- JSで動的生成 -->
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="closeSlotHistory()" class="btn btn-update" style="margin: 0; padding: 8px 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color:#fff; cursor:pointer;">閉じる</button>
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
 </body>
 </html>
