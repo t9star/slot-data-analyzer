@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Database and logs
+*.db
+*.log
+*.txt
+*.png
+*.xml
+*.html
+progress.json
+find_hidden_kenou_100k.py
+goraggio_*
+kenou_*
