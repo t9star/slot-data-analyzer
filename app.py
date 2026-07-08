@@ -3,6 +3,7 @@ import threading
 import os
 import json
 from datetime import datetime
+import subprocess
 import scraper
 import dashboard_generator
 import analyzer
@@ -66,6 +67,27 @@ def set_progress(status, current, total, message):
     """
     scraper.update_progress(status, current, total, message)
 
+def push_to_github():
+    """
+    更新された index.html を GitHub に自動プッシュする (Git絶対パスルール適用)
+    """
+    try:
+        print("[GitHub Push] インターネット公開用データのアップロードを開始します...")
+        git_path = r"C:\Program Files\Git\cmd\git.exe"
+        
+        # 1. git add index.html
+        subprocess.run([git_path, "add", "index.html"], check=True)
+        
+        # 2. git commit -m "auto: Update dashboard data"
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        subprocess.run([git_path, "commit", "--allow-empty", "-m", f"auto: Update dashboard data {now_str}"], check=True)
+        
+        # 3. git push origin master
+        subprocess.run([git_path, "push", "origin", "master"], check=True)
+        print("[GitHub Push] アップロードが正常に完了しました！")
+    except Exception as e:
+        print(f"[GitHub Push] エラーが発生しました: {str(e)}")
+
 def async_update_task(limit):
     """
     バックグラウンドでスクレイピングとダッシュボード更新を行うスレッド関数
@@ -79,6 +101,9 @@ def async_update_task(limit):
             # 2. ダッシュボードの再生成
             set_progress("running", limit, limit, "ダッシュボードを再生成しています...")
             dashboard_generator.generate_dashboard()
+            
+            # 3. GitHubへ自動アップロード (Pages更新)
+            push_to_github()
             
             set_progress("done", limit, limit, "データ更新が完了しました！")
         except Exception as e:
@@ -97,6 +122,9 @@ def async_goraggio_task(limit):
             # 2. ダッシュボードの再生成
             set_progress("running", limit, limit, "ダッシュボードを再生成しています...")
             dashboard_generator.generate_dashboard()
+            
+            # 3. GitHubへ自動アップロード (Pages更新)
+            push_to_github()
             
             set_progress("done", limit, limit, "通常営業日のデータ回収が完了しました！")
         except Exception as e:
