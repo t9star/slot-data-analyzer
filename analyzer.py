@@ -207,6 +207,8 @@ def predict_next_hot_slots(target_date_str):
         df['last_diff'] = 0
         
     # 欠損値補完
+    df['avg_diff'] = df['avg_diff'].fillna(0)
+    df['win_rate'] = df['win_rate'].fillna(0)
     df['machine_avg_diff'] = df['machine_avg_diff'].fillna(0)
     df['last_diff'] = df['last_diff'].fillna(0)
     
@@ -445,15 +447,15 @@ def analyze_weekday_machine_trends():
     grouped = df.groupby(['weekday_ja', 'machine_name']).agg(
         avg_diff=('average_diff', 'mean'),
         win_rate=('winning_rate', 'mean'),
-        total_count=('count', 'sum')
-    ).reset_index()
-    
+        total_count=('count', 'mean') # 平均設置台数に変更
+     ).reset_index()
+     
     # 曜日ごとに整理
     weekday_trends = {}
     for day in ['月', '火', '水', '木', '金', '土', '日']:
         day_df = grouped[grouped['weekday_ja'] == day]
-        # 最低設置台数が一定以上のデータのみに限定してノイズを減らす
-        day_df = day_df[day_df['total_count'] >= 3]
+        # 平均設置台数が2台以上のデータのみに限定してバラエティ等のノイズを減らす
+        day_df = day_df[day_df['total_count'] >= 2.0]
         day_df = day_df.sort_values(by='avg_diff', ascending=False).head(3)
         
         weekday_trends[day] = []
