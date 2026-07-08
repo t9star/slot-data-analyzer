@@ -57,7 +57,7 @@ def analyze_machines(min_records=3):
     SELECT 
         machine_name,
         COUNT(date) as recorded_days,
-        SUM(count) as total_installed,
+        MAX(count) as total_installed,
         SUM(total_diff) as sum_diff,
         AVG(average_diff) as avg_diff,
         SUM(winning_machines) as total_wins,
@@ -280,7 +280,7 @@ def get_recent_trends():
     SELECT 
         machine_name,
         COUNT(date) as recorded_days,
-        SUM(count) as total_installed,
+        MAX(count) as total_installed,
         SUM(total_diff) as sum_diff,
         AVG(average_diff) as avg_diff,
         AVG(winning_rate) * 100 as win_rate
