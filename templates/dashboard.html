@@ -145,8 +145,6 @@
         /* Tables styling */
         .table-container {
             overflow-x: auto;
-            max-height: 500px;
-            overflow-y: auto;
         }
 
         table {
@@ -834,11 +832,11 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 15%; white-space: nowrap;">日付</th>
-                                <th style="width: 15%; white-space: nowrap;">台番号</th>
-                                <th style="width: 25%;">機種名</th>
-                                <th style="width: 15%; white-space: nowrap;">合計差枚</th>
-                                <th style="width: 30%;">詳細</th>
+                                <th style="white-space: nowrap;">日付</th>
+                                <th style="white-space: nowrap; text-align: center;">台番号</th>
+                                <th>機種名</th>
+                                <th style="white-space: nowrap; text-align: center;">合計差枚</th>
+                                <th>詳細</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -846,14 +844,14 @@
                                 {% for b in detected_blocks %}
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">{{ b.date }}</td>
-                                    <td style="font-weight: 600; color: #fff; text-align: center;">{{ b.slots }}</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color);">{{ b.machines }}</td>
-                                    <td>
-                                        <span class="badge badge-plus" style="font-weight: 800;">
+                                    <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">{{ b.slots }}</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">{{ b.machines }}</td>
+                                    <td style="text-align: center; white-space: nowrap;">
+                                        <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             {{ "{:+,}".format(b.total_diff) }}枚
                                         </span>
                                     </td>
-                                    <td style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;">{{ b.details }}</td>
+                                    <td style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; word-break: break-all;">{{ b.details }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
