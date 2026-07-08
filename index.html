@@ -227,9 +227,46 @@
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
+                padding: 15px !important;
             }
             .header-meta {
                 text-align: left;
+            }
+            .card {
+                padding: 18px 12px !important;
+                border-radius: 12px !important;
+            }
+            th, td {
+                padding: 8px 4px !important;
+                font-size: 0.8rem !important;
+            }
+            /* カレンダーのスマホ最適化 */
+            .calendar-day {
+                padding: 4px 1px !important;
+                min-height: 44px !important;
+            }
+            .calendar-day-num {
+                font-size: 0.75rem !important;
+            }
+            .calendar-day-info {
+                font-size: 0.55rem !important;
+                transform: scale(0.9);
+                margin-top: 1px !important;
+            }
+            /* 期待予測タイトルのスマホ調整 */
+            .predict-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 12px;
+            }
+            /* ボタン・入力フォームの調整 */
+            .btn {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 8px !important;
+            }
+            .date-select-btn {
+                width: 100%;
             }
         }
 
@@ -464,7 +501,7 @@
                     <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
                     <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
                 </div>
-                <p>ダッシュボード生成日時: 2026-07-08 22:36:51</p>
+                <p>ダッシュボード生成日時: 2026-07-08 22:43:28</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-07-08</p>
             </div>
         </header>
@@ -1990,7 +2027,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-07</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2065 - 2067</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LB SHAKE BONUS TRIGGER / LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / Lうみねこのなく頃に2</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / LB SHAKE BONUS TRIGGER / Lうみねこのなく頃に2</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,809枚

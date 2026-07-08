@@ -227,9 +227,46 @@
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
+                padding: 15px !important;
             }
             .header-meta {
                 text-align: left;
+            }
+            .card {
+                padding: 18px 12px !important;
+                border-radius: 12px !important;
+            }
+            th, td {
+                padding: 8px 4px !important;
+                font-size: 0.8rem !important;
+            }
+            /* カレンダーのスマホ最適化 */
+            .calendar-day {
+                padding: 4px 1px !important;
+                min-height: 44px !important;
+            }
+            .calendar-day-num {
+                font-size: 0.75rem !important;
+            }
+            .calendar-day-info {
+                font-size: 0.55rem !important;
+                transform: scale(0.9);
+                margin-top: 1px !important;
+            }
+            /* 期待予測タイトルのスマホ調整 */
+            .predict-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 12px;
+            }
+            /* ボタン・入力フォームの調整 */
+            .btn {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 8px !important;
+            }
+            .date-select-btn {
+                width: 100%;
             }
         }
 
