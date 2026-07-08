@@ -10,7 +10,42 @@ import analyzer
 app = Flask(__name__, template_folder="templates")
 PROJECT_DIR = os.path.dirname(__file__)
 PROGRESS_PATH = os.path.join(PROJECT_DIR, "progress.json")
+import time
+
 LOCK = threading.Lock()
+
+def schedule_worker():
+    """
+    毎日深夜 AM 3:00 に自動データ回収 (直近8日分の通常営業日データ) を実行するバックグラウンドタスク
+    """
+    print("[Scheduler] 定期自動回収タスクが起動しました (毎日 AM 3:00 実行予定)")
+    last_run_date = None
+    
+    while True:
+        try:
+            now = datetime.now()
+            # 毎日 AM 3:00 に実行
+            if now.hour == 3 and now.minute == 0 and last_run_date != now.date():
+                progress = get_progress()
+                if progress.get("status") != "running":
+                    print(f"[Scheduler] {now.strftime('%Y-%m-%d %H:%M:%S')} - 定期データ回収を開始します。")
+                    t = threading.Thread(target=async_goraggio_task, args=(8,))
+                    t.daemon = True
+                    t.start()
+                    last_run_date = now.date()
+                else:
+                    print("[Scheduler] 別の更新処理が実行中のため、定期回収をスキップします。")
+            
+            # 30秒ごとに時刻をチェック
+            time.sleep(30)
+        except Exception as e:
+            print(f"[Scheduler] エラーが発生しました: {str(e)}")
+            time.sleep(60)
+
+# デーモンスレッドとしてスケジューラを起動
+scheduler_thread = threading.Thread(target=schedule_worker)
+scheduler_thread.daemon = True
+scheduler_thread.start()
 
 def get_progress():
     """
