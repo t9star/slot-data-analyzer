@@ -573,10 +573,25 @@ def analyze_recommended_machines():
         label = row['label']
         
         # 期間内の出玉データの集計
-        # 1. 差枚・勝率・稼働台数
+        # 1. 設置台数（期間内における1日あたりの最大台数）の取得
+        slots_count_query = """
+        SELECT MAX(daily_count) FROM (
+            SELECT COUNT(*) as daily_count 
+            FROM slot_details 
+            WHERE machine_name = ? 
+              AND date >= ? 
+              AND date <= ? 
+            GROUP BY date
+        )
+        """
+        cursor = conn.cursor()
+        cursor.execute(slots_count_query, (m_name, start_d, end_d))
+        slots_count_row = cursor.fetchone()
+        total_slots = slots_count_row[0] if slots_count_row and slots_count_row[0] is not None else 0
+        
+        # 2. 差枚・勝率の平均値
         stats_query = """
         SELECT 
-            COUNT(*) as total_slots,
             AVG(diff) as avg_diff,
             AVG(winning) as win_rate
         FROM slot_details
@@ -584,13 +599,11 @@ def analyze_recommended_machines():
           AND date >= ?
           AND date <= ?
         """
-        cursor = conn.cursor()
         cursor.execute(stats_query, (m_name, start_d, end_d))
         stats = cursor.fetchone()
         
-        total_slots = stats[0] if stats[0] is not None else 0
-        avg_diff = int(round(stats[1])) if stats[1] is not None else 0
-        win_rate = round(stats[2] * 100, 1) if stats[2] is not None else 0.0
+        avg_diff = int(round(stats[0])) if stats and stats[0] is not None else 0
+        win_rate = round(stats[1] * 100, 1) if stats and stats[1] is not None else 0.0
         
         # 2. 高設定濃厚（5000Gかつ+2000枚以上）の発生台数
         high_setting_query = """
