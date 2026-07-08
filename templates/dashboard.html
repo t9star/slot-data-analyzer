@@ -1607,6 +1607,43 @@
                 });
         }
 
+        // セキュリティ初期化 (スマホ向け自動ログイン)
+        (function() {
+            try {
+                const stored = localStorage.getItem('slot_dashboard_auth');
+                if (stored === 'MTIzMw==') { // '1233'
+                    const hideLock = function() {
+                        const lock = document.getElementById('passcode-lock-screen');
+                        if (lock) lock.style.display = 'none';
+                    };
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', hideLock);
+                    } else {
+                        hideLock();
+                    }
+                }
+            } catch (e) {
+                console.error('Storage access blocked:', e);
+            }
+        })();
+
+        function checkPasscode() {
+            const input = document.getElementById('input-passcode').value;
+            const errorEl = document.getElementById('passcode-error');
+            if (btoa(input) === 'MTIzMw==') { // '1233'
+                try {
+                    localStorage.setItem('slot_dashboard_auth', 'MTIzMw==');
+                } catch (e) {
+                    console.error('Storage write blocked:', e);
+                }
+                const lock = document.getElementById('passcode-lock-screen');
+                if (lock) lock.style.display = 'none';
+            } else {
+                if (errorEl) errorEl.style.display = 'block';
+                document.getElementById('input-passcode').value = '';
+            }
+        }
+
         // 台番号個別データ履歴モーダル表示
         function showSlotHistory(slotNumber) {
             const modal = document.getElementById('slot-history-modal');
@@ -1703,5 +1740,15 @@
             to { opacity: 1; transform: scale(1); }
         }
     </style>
+    <!-- パスコードロック画面 (関係者限定) -->
+    <div id="passcode-lock-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 100000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Outfit', sans-serif;">
+        <div style="background: #111; border: 2px solid var(--primary-color); border-radius: 16px; padding: 40px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 0 30px rgba(0, 186, 242, 0.2); animation: modalFadeIn 0.3s ease-out;">
+            <h2 style="color: #fff; margin-bottom: 10px; font-size: 1.4rem;">🎰 出玉分析ダッシュボード</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px;">このサイトは関係者専用のプライベートページです。<br>閲覧するにはパスコードを入力してください。</p>
+            <input type="password" id="input-passcode" placeholder="4桁 of 暗証番号" style="width: 100%; padding: 12px; font-size: 1.2rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #222; color: #fff; text-align: center; margin-bottom: 20px; letter-spacing: 5px;" onkeydown="if(event.key === 'Enter') checkPasscode()">
+            <button onclick="checkPasscode()" class="btn btn-update" style="width: 100%; padding: 12px; font-size: 1rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #1d7c9f 100%); margin: 0; cursor: pointer; color: #fff;">認証する</button>
+            <div id="passcode-error" style="color: var(--danger-color); font-size: 0.85rem; margin-top: 15px; display: none;">❌ パスコードが正しくありません。</div>
+        </div>
+    </div>
 </body>
 </html>
