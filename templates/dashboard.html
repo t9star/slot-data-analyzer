@@ -854,7 +854,7 @@
                             <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
                             <td>
                                 <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
-                                    {{ "{:+,}".format(row['last_diff']) if row['last_diff'] != 0 else '-' }}
+                                    {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
                                 </span>
                             </td>
                             <td>
@@ -1242,7 +1242,7 @@
                         
                         const lastDiffVal = row.last_diff;
                         const lastDiffColor = lastDiffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-                        const lastDiffText = lastDiffVal !== 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
+                        const lastDiffText = row.last_games >= 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
                         
                         html += `
                             <tr>

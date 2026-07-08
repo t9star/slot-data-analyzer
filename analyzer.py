@@ -224,7 +224,7 @@ def predict_next_hot_slots(target_date_str, params=None):
     
     last_day_df = pd.DataFrame()
     if last_date:
-        last_day_query = "SELECT slot_number, diff as last_diff FROM slot_details WHERE date = ?"
+        last_day_query = "SELECT slot_number, diff as last_diff, games as last_games FROM slot_details WHERE date = ?"
         last_day_df = pd.read_sql_query(last_day_query, conn, params=(last_date,))
         
     conn.close()
@@ -238,12 +238,14 @@ def predict_next_hot_slots(target_date_str, params=None):
         df = pd.merge(df, last_day_df, on='slot_number', how='left')
     else:
         df['last_diff'] = 0
+        df['last_games'] = -1
         
     # 欠損値補完
     df['avg_diff'] = df['avg_diff'].fillna(0)
     df['win_rate'] = df['win_rate'].fillna(0)
     df['machine_avg_diff'] = df['machine_avg_diff'].fillna(0)
     df['last_diff'] = df['last_diff'].fillna(0)
+    df['last_games'] = df['last_games'].fillna(-1)
     
     # 末尾判定
     df['last_digit'] = df['slot_number'] % 10
@@ -270,13 +272,14 @@ def predict_next_hot_slots(target_date_str, params=None):
     df['avg_diff'] = df['avg_diff'].round(0).astype(int)
     df['machine_avg_diff'] = df['machine_avg_diff'].round(0).astype(int)
     df['last_diff'] = df['last_diff'].round(0).astype(int)
+    df['last_games'] = df['last_games'].astype(int)
     
     hot_slots = df.sort_values(by='score', ascending=False).head(20)
     
     return hot_slots[[
         'slot_number', 'machine_name', 'recorded_days', 
         'avg_diff', 'win_rate', 'machine_avg_diff', 
-        'last_diff', 'score'
+        'last_diff', 'last_games', 'score'
     ]]
 
 def get_recent_trends():
