@@ -263,13 +263,29 @@ def slot_history():
     try:
         conn = analyzer.get_connection()
         cursor = conn.cursor()
+        
+        # 最新の設置機種名を取得
+        cursor.execute("""
+            SELECT machine_name FROM slot_details 
+            WHERE slot_number = ? 
+            ORDER BY date DESC LIMIT 1
+        """, (slot_num,))
+        latest_machine_row = cursor.fetchone()
+        
+        if not latest_machine_row:
+            conn.close()
+            return jsonify({"slot_number": slot_num, "history": []})
+            
+        latest_machine_name = latest_machine_row[0]
+        
+        # 同一台番号かつ同機種の過去レコードに限定して取得
         cursor.execute("""
             SELECT date, machine_name, games, diff, winning 
             FROM slot_details 
-            WHERE slot_number = ? 
+            WHERE slot_number = ? AND machine_name = ?
             ORDER BY date DESC 
             LIMIT 10
-        """, (slot_num,))
+        """, (slot_num, latest_machine_name))
         rows = cursor.fetchall()
         conn.close()
         

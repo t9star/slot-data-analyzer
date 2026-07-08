@@ -179,18 +179,28 @@ def predict_next_hot_slots(target_date_str, params=None):
     conn = get_connection()
     
     # 1. 各台番号の過去データ（直近30営業日のデータに限定して、新台入れ替え等の挙動変化に追従させる）
+    # 同一の台番号であっても、台移動や新台入替の前後でデータが混ざらないよう、
+    # ターゲット日直前営業日の設置機種と同一のレコードのみに限定して集計する
     # 注: target_date_str より前のデータのみを対象とする (リーク防止)
     slot_query = """
-    WITH ranked_slots AS (
-        SELECT 
-            date,
-            slot_number,
-            machine_name,
-            diff,
-            winning,
-            ROW_NUMBER() OVER(PARTITION BY slot_number ORDER BY date DESC) as rn
+    WITH latest_machines AS (
+        SELECT slot_number, machine_name
         FROM slot_details
-        WHERE date < ?
+        WHERE date = (SELECT MAX(date) FROM daily_summary WHERE date < ?)
+    ),
+    filtered_slots AS (
+        SELECT 
+            sd.date,
+            sd.slot_number,
+            sd.machine_name,
+            sd.diff,
+            sd.winning,
+            ROW_NUMBER() OVER(PARTITION BY sd.slot_number ORDER BY sd.date DESC) as rn
+        FROM slot_details sd
+        JOIN latest_machines lm 
+          ON sd.slot_number = lm.slot_number 
+         AND sd.machine_name = lm.machine_name
+        WHERE sd.date < ?
     )
     SELECT 
         slot_number,
@@ -198,11 +208,11 @@ def predict_next_hot_slots(target_date_str, params=None):
         COUNT(date) as recorded_days,
         AVG(diff) as avg_diff,
         AVG(winning) as win_rate
-    FROM ranked_slots
+    FROM filtered_slots
     WHERE rn <= 30
     GROUP BY slot_number, machine_name
     """
-    slots_df = pd.read_sql_query(slot_query, conn, params=(target_date_str,))
+    slots_df = pd.read_sql_query(slot_query, conn, params=(target_date_str, target_date_str))
     
     # 2. 機種ごとの過去の強さ（平均差枚）
     machine_query = """
