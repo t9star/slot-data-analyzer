@@ -585,7 +585,7 @@
         }
 
         /* スマホ向けメディアクエリ */
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
             .bottom-nav {
                 display: flex;
             }
@@ -2193,7 +2193,7 @@
         let activeMobileTab = 'predictions';
 
         function switchMobileTab(tabId) {
-            const isMobile = window.innerWidth <= 768;
+            const isMobile = window.innerWidth <= 992;
             if (!isMobile) return;
             
             activeMobileTab = tabId;
@@ -2220,7 +2220,7 @@
 
         // スマホ・PC環境の自動初期化とリサイズ監視
         function initMobileLayout() {
-            const isMobile = window.innerWidth <= 768;
+            const isMobile = window.innerWidth <= 992;
             
             if (isMobile) {
                 // スマホ時は現在のタブのみ表示
