@@ -2270,19 +2270,16 @@
         // スマホ用モバイルタブ表示切り替え
         let activeMobileTab = 'predictions';
 
-        // ボトムナビが実際にCSS上で表示されているかを直接確認する
-        // (window.innerWidthに頼らず、レンダリングエンジンの最終判断を使う)
-        function isBottomNavVisible() {
-            const nav = document.querySelector('.bottom-nav');
-            if (!nav) return false;
-            return window.getComputedStyle(nav).display !== 'none';
+        // モバイルモードかどうかの判定 (CSSメディアクエリの1200px境界と同期)
+        function isMobileMode() {
+            return window.innerWidth < 1200;
         }
 
         let lastWindowWidth = window.innerWidth;
         let lastWindowHeight = window.innerHeight;
 
         function switchMobileTab(tabId, shouldScroll = false) {
-            if (!isBottomNavVisible()) return;
+            if (!isMobileMode()) return;
             
             activeMobileTab = tabId;
             
@@ -2306,7 +2303,6 @@
             }
             
             // Plotlyのレイアウトが崩れないように自動リサイズをトリガーする
-            // (これはグローバルなresizeイベントを発生させますが、initMobileLayout側で幅・高さ変更なしとして無視されます)
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
             }, 100);
@@ -2325,8 +2321,8 @@
             lastWindowWidth = currentWidth;
             lastWindowHeight = currentHeight;
             
-            if (isBottomNavVisible()) {
-                // ボトムナビが表示されている環境 → タブモードで動作 (自動リサイズなのでスクロールはさせない)
+            if (isMobileMode()) {
+                // スマホ・タブレット環境 → タブモードで動作 (自動リサイズなのでスクロールはさせない)
                 switchMobileTab(activeMobileTab, false);
             } else {
                 // 大画面PC → 全セクション表示
