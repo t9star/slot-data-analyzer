@@ -533,9 +533,9 @@
             text-overflow: ellipsis;
         }
 
-        /* ボトムナビゲーションバー */
+        /* ボトムナビゲーションバー（常時表示、大画面PCのみ非表示） */
         .bottom-nav {
-            display: none;
+            display: flex;
             position: fixed;
             bottom: 0;
             left: 0;
@@ -584,30 +584,32 @@
             font-weight: 600;
         }
 
-        /* スマホ向けメディアクエリ */
-        @media (max-width: 992px) {
+        /* 大画面PC向け：ボトムナビを非表示にし、全セクション表示 */
+        @media (min-width: 1200px) {
             .bottom-nav {
-                display: flex;
+                display: none !important;
             }
-            body {
-                padding-bottom: 85px !important;
-            }
-            /* スマホのときは各セクションをデフォルト非表示 */
-            .mobile-section {
-                display: none;
-            }
-            .mobile-section.active-section {
-                display: block !important;
-                animation: fadeInSection 0.3s ease;
-            }
-            /* テーブルカラムのレスポンシブ非表示 */
+        }
+
+        /* モバイル・タブレット向けの微調整 */
+        body {
+            padding-bottom: 85px;
+        }
+        .mobile-section {
+            display: none;
+        }
+        .mobile-section.active-section {
+            display: block !important;
+            animation: fadeInSection 0.3s ease;
+        }
+        /* テーブルカラムのレスポンシブ非表示（タッチデバイス） */
+        @media (max-width: 1199px) {
             .col-recorded-days, .col-machine-avg-diff {
                 display: none !important;
             }
             .mobile-subtext {
                 display: block !important;
             }
-            /* 余白の最小化 */
             .container {
                 padding: 10px !important;
             }
@@ -627,6 +629,15 @@
             }
             .kpi-value {
                 font-size: 1.2rem !important;
+            }
+        }
+        /* 大画面PCではbodyの余白不要 */
+        @media (min-width: 1200px) {
+            body {
+                padding-bottom: 0 !important;
+            }
+            .mobile-section {
+                display: block !important;
             }
         }
         
@@ -652,7 +663,7 @@
                     <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
                     <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
                 </div>
-                <p>ダッシュボード生成日時: 2026-07-09 19:49:05</p>
+                <p>ダッシュボード生成日時: 2026-07-09 20:00:14</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-07-08</p>
             </div>
         </header>
@@ -715,15 +726,18 @@
             </div>
             
             <!-- 予測モデル切り替えタブ -->
-            <div class="model-tabs-container" style="display: flex; gap: 8px; margin-bottom: 20px;">
-                <button onclick="switchPredictionModel('default')" id="tab-model-default" class="model-tab active" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid var(--primary-color); background: rgba(0, 186, 242, 0.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+            <div class="model-tabs-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;">
+                <button onclick="switchPredictionModel('default')" id="tab-model-default" class="model-tab active" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid var(--primary-color); background: rgba(0, 186, 242, 0.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
                     ⚖️ バランス型
                 </button>
-                <button onclick="switchPredictionModel('raise')" id="tab-model-raise" class="model-tab" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                <button onclick="switchPredictionModel('raise')" id="tab-model-raise" class="model-tab" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
                     🔄 上げ狙い特化
                 </button>
-                <button onclick="switchPredictionModel('trend')" id="tab-model-trend" class="model-tab" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                <button onclick="switchPredictionModel('trend')" id="tab-model-trend" class="model-tab" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
                     🎯 末尾・ゾロ目特化
+                </button>
+                <button onclick="switchPredictionModel('weekday')" id="tab-model-weekday" class="model-tab" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                    📅 曜日パターン
                 </button>
             </div>
             
@@ -742,6 +756,7 @@
                                         <th style="color: var(--primary-color);">バランス型 ⚖️</th>
                                         <th style="color: var(--success-color);">上げ狙い型 🔄</th>
                                         <th style="color: var(--accent-color);">末尾特化型 🎯</th>
+                                        <th style="color: #a78bfa;">曜日型 📅</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -750,6 +765,7 @@
                                         <td style="font-weight: 600;">2026-07-05</td>
                                         
                                         <!-- バランス型 -->
+                                        
                                         <td style="text-align: center; background: rgba(0, 186, 242, 0.02); border: 1px solid var(--primary-color); font-weight: bold;">
                                             <span style="color: var(--success-color);">
                                                 +1,184枚
@@ -776,12 +792,24 @@
                                             
                                         </td>
                                         
+                                        <!-- 曜日パターン型 -->
+                                        
+                                        <td style="text-align: center; background: rgba(167, 139, 250, 0.02); ">
+                                            <span style="color: var(--success-color);">
+                                                +1,032枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: 55.0%</div>
+                                            
+                                        </td>
+                                        
+                                        
                                     </tr>
                                     
                                     <tr>
                                         <td style="font-weight: 600;">2026-06-30</td>
                                         
                                         <!-- バランス型 -->
+                                        
                                         <td style="text-align: center; background: rgba(0, 186, 242, 0.02); ">
                                             <span style="color: var(--danger-color);">
                                                 -590枚
@@ -808,12 +836,24 @@
                                             
                                         </td>
                                         
+                                        <!-- 曜日パターン型 -->
+                                        
+                                        <td style="text-align: center; background: rgba(167, 139, 250, 0.02); ">
+                                            <span style="color: var(--danger-color);">
+                                                -980枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: 20.0%</div>
+                                            
+                                        </td>
+                                        
+                                        
                                     </tr>
                                     
                                     <tr>
                                         <td style="font-weight: 600;">2026-05-25</td>
                                         
                                         <!-- バランス型 -->
+                                        
                                         <td style="text-align: center; background: rgba(0, 186, 242, 0.02); border: 1px solid var(--primary-color); font-weight: bold;">
                                             <span style="color: var(--success-color);">
                                                 +1,312枚
@@ -840,12 +880,24 @@
                                             
                                         </td>
                                         
+                                        <!-- 曜日パターン型 -->
+                                        
+                                        <td style="text-align: center; background: rgba(167, 139, 250, 0.02); ">
+                                            <span style="color: var(--success-color);">
+                                                +693枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: 45.0%</div>
+                                            
+                                        </td>
+                                        
+                                        
                                     </tr>
                                     
                                     <tr>
                                         <td style="font-weight: 600;">2026-04-30</td>
                                         
                                         <!-- バランス型 -->
+                                        
                                         <td style="text-align: center; background: rgba(0, 186, 242, 0.02); ">
                                             <span style="color: var(--success-color);">
                                                 +1,330枚
@@ -872,12 +924,24 @@
                                             
                                         </td>
                                         
+                                        <!-- 曜日パターン型 -->
+                                        
+                                        <td style="text-align: center; background: rgba(167, 139, 250, 0.02); ">
+                                            <span style="color: var(--success-color);">
+                                                +1,171枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: 70.0%</div>
+                                            
+                                        </td>
+                                        
+                                        
                                     </tr>
                                     
                                     <tr>
                                         <td style="font-weight: 600;">2026-04-20</td>
                                         
                                         <!-- バランス型 -->
+                                        
                                         <td style="text-align: center; background: rgba(0, 186, 242, 0.02); ">
                                             <span style="color: var(--success-color);">
                                                 +376枚
@@ -904,6 +968,17 @@
                                             
                                         </td>
                                         
+                                        <!-- 曜日パターン型 -->
+                                        
+                                        <td style="text-align: center; background: rgba(167, 139, 250, 0.02); ">
+                                            <span style="color: var(--success-color);">
+                                                +162枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: 50.0%</div>
+                                            
+                                        </td>
+                                        
+                                        
                                     </tr>
                                     
                                 </tbody>
@@ -914,7 +989,7 @@
                 <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid rgba(255,255,255,0.05); padding-left: 20px;">
                     <div style="font-size: 0.85rem; font-weight: bold; color: #fff; margin-bottom: 5px;">予測の複数モデル比較とは？</div>
                     <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
-                        狙い台のアプローチが異なる3つのAIモデル（バランス・上げ狙い特化・末尾ゾロ目特化）が、過去の特定日にどれだけ的中していたかを比較します。直近で最も「👑最優秀」が多いモデルが今最も有効な戦略となります。
+                        狙い台のアプローチが異なる4つのAIモデル（バランス・上げ狙い特化・末尾ゾロ目特化・曜日パターン）が、過去の特定日にどれだけ的中していたかを比較します。直近で最も「👑最優秀」が多いモデルが今最も有効な戦略となります。
                     </p>
                 </div>
             </div>
@@ -2745,6 +2820,609 @@
                         </tr>
                         
                     </tbody>
+                    <tbody id="predictions-tbody-weekday" class="predictions-tbody-group" style="display: none;">
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#1</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(37)" title="クリックで直近10日の詳細データを表示">
+                                37
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L防振り</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: +3,211枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +3,211
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+3,211</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -589
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    1445.1 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#2</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1865)" title="クリックで直近10日の詳細データを表示">
+                                1865
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +2,696
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+688</td>
+                            <td>
+                                <span style="color: var(--success-color); font-size: 0.9rem;">
+                                    +471
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    811.6 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#3</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(77)" title="クリックで直近10日の詳細データを表示">
+                                77
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lとある科学の超電磁砲2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,425枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +1,425
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+1,425</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -2,078
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    771.2 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#4</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1771)" title="クリックで直近10日の詳細データを表示">
+                                1771
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +974
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+329</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -1,068
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    689.2 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#5</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1878)" title="クリックで直近10日の詳細データを表示">
+                                1878
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +19枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +2,342
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+19</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -1,719
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    669.2 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#6</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(177)" title="クリックで直近10日の詳細データを表示">
+                                177
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +987
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+688</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -2,708
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    594.4 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#7</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1767)" title="クリックで直近10日の詳細データを表示">
+                                1767
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +747
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+329</td>
+                            <td>
+                                <span style="color: var(--success-color); font-size: 0.9rem;">
+                                    +0
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    552.5 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#8</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1860)" title="クリックで直近10日の詳細データを表示">
+                                1860
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +1,034
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+688</td>
+                            <td>
+                                <span style="color: var(--success-color); font-size: 0.9rem;">
+                                    +64
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    546.2 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#9</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1833)" title="クリックで直近10日の詳細データを表示">
+                                1833
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lからくりｻｰｶｽ2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: -435枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +2,309
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">-435</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -718
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    540.2 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#10</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(161)" title="クリックで直近10日の詳細データを表示">
+                                161
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LﾊﾞｲｵﾊｻﾞｰﾄﾞRE：3</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: -124枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +2,203
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">-124</td>
+                            <td>
+                                <span style="color: var(--success-color); font-size: 0.9rem;">
+                                    +5,622
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    526.1 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#11</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1738)" title="クリックで直近10日の詳細データを表示">
+                                1738
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +234
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+329</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -147
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    504.2 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#12</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2066)" title="クリックで直近10日の詳細データを表示">
+                                2066
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LB SHAKE BONUS TRIGGER</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,004枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +1,004
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+1,004</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -381
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    502.0 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#13</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(200)" title="クリックで直近10日の詳細データを表示">
+                                200
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾏｷﾞｱﾚｺｰﾄﾞ</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +79枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +903
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+79</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -2,322
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    471.4 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#14</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(76)" title="クリックで直近10日の詳細データを表示">
+                                76
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L新鬼武者3</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +33枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +1,186
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+33</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -3,073
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    463.1 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#15</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1770)" title="クリックで直近10日の詳細データを表示">
+                                1770
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
+                            <td>
+                                <span style="color: var(--danger-color);">
+                                    -220
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+329</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -928
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    460.6 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#16</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1762)" title="クリックで直近10日の詳細データを表示">
+                                1762
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +283
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+329</td>
+                            <td>
+                                <span style="color: var(--success-color); font-size: 0.9rem;">
+                                    +5,053
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    436.4 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#17</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1678)" title="クリックで直近10日の詳細データを表示">
+                                1678
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L北斗 転生の章2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +20枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +1,721
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+20</td>
+                            <td>
+                                <span style="color: var(--success-color); font-size: 0.9rem;">
+                                    +479
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    434.3 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#18</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1773)" title="クリックで直近10日の詳細データを表示">
+                                1773
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +199
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+329</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -1,088
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    415.4 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#19</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1862)" title="クリックで直近10日の詳細データを表示">
+                                1862
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +446
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+688</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -2,345
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    409.0 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#20</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1757)" title="クリックで直近10日の詳細データを表示">
+                                1757
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
+                            <td>
+                                <span style="color: var(--success-color);">
+                                    +220
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">+329</td>
+                            <td>
+                                <span style="color: var(--danger-color); font-size: 0.9rem;">
+                                    -1,159
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
+                                    400.7 pts
+                                </span>
+                            </td>
+                        </tr>
+                        
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -3625,7 +4303,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-07</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2065 - 2067</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LB SHAKE BONUS TRIGGER / Lうみねこのなく頃に2 / LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / Lうみねこのなく頃に2 / LB SHAKE BONUS TRIGGER</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,809枚
@@ -4296,6 +4974,14 @@
                 b_match: 400.0,
                 b_zoro: 200.0,
                 b_raise: 80.0
+            },
+            weekday: {
+                w_slot: 0.25,
+                w_mach: 0.2,
+                b_match: 150.0,
+                b_zoro: 50.0,
+                b_raise: 80.0,
+                b_weekday: 200.0
             }
         };
 
@@ -4322,6 +5008,9 @@
             } else if (modelType === 'trend') {
                 activeColor = 'var(--accent-color)';
                 activeBg = 'rgba(255, 51, 102, 0.1)';
+            } else if (modelType === 'weekday') {
+                activeColor = '#a78bfa';
+                activeBg = 'rgba(167, 139, 250, 0.1)';
             }
             activeTab.style.background = activeBg;
             activeTab.style.borderColor = activeColor;
@@ -4329,13 +5018,16 @@
             
             // パラメータ表示部分の差し替え
             const p = modelParams[modelType];
-            const paramsHtml = `
+            let paramsHtml = `
                 台平均: <span style="color:#fff; font-weight:600;">${p.w_slot}</span> | 
                 機種平均: <span style="color:#fff; font-weight:600;">${p.w_mach}</span> | 
                 末尾: <span style="color:#fff; font-weight:600;">+${p.b_match}</span> | 
                 ゾロ目: <span style="color:#fff; font-weight:600;">+${p.b_zoro}</span> | 
                 上げ: <span style="color:#fff; font-weight:600;">+${p.b_raise}</span>
             `;
+            if (modelType === 'weekday' && p.b_weekday !== undefined) {
+                paramsHtml += ` | 曜日: <span style="color:#a78bfa; font-weight:600;">+${p.b_weekday}</span>`;
+            }
             document.getElementById('params-display-area').innerHTML = paramsHtml;
             
             // 日付変更されていなければ、単純に非同期テーブル表示切り替え
@@ -4375,11 +5067,13 @@
                     badgeStyle = 'background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: var(--success-color);';
                 } else if (currentModel === 'trend') {
                     badgeStyle = 'background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); color: var(--accent-color);';
+                } else if (currentModel === 'weekday') {
+                    badgeStyle = 'background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;';
                 }
                 
                 html += `
                     <tr>
-                        <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : 'var(--accent-color)')};">#${idx + 1}</td>
+                        <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : (currentModel === 'weekday' ? '#a78bfa' : 'var(--accent-color)'))};">#${idx + 1}</td>
                         <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
                             ${row.slot_number}
                         </td>
@@ -4986,9 +5680,16 @@
         // スマホ用モバイルタブ表示切り替え
         let activeMobileTab = 'predictions';
 
+        // ボトムナビが実際にCSS上で表示されているかを直接確認する
+        // (window.innerWidthに頼らず、レンダリングエンジンの最終判断を使う)
+        function isBottomNavVisible() {
+            const nav = document.querySelector('.bottom-nav');
+            if (!nav) return false;
+            return window.getComputedStyle(nav).display !== 'none';
+        }
+
         function switchMobileTab(tabId) {
-            const isMobile = window.innerWidth <= 992;
-            if (!isMobile) return;
+            if (!isBottomNavVisible()) return;
             
             activeMobileTab = tabId;
             
@@ -5006,6 +5707,9 @@
             const activeSec = document.getElementById(`section-${tabId}`);
             if (activeSec) activeSec.classList.add('active-section');
             
+            // 3. ページトップへスクロール
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
             // Plotlyのレイアウトが崩れないように自動リサイズをトリガーする
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
@@ -5014,15 +5718,14 @@
 
         // スマホ・PC環境の自動初期化とリサイズ監視
         function initMobileLayout() {
-            const isMobile = window.innerWidth <= 992;
-            
-            if (isMobile) {
-                // スマホ時は現在のタブのみ表示
+            if (isBottomNavVisible()) {
+                // ボトムナビが表示されている環境 → タブモードで動作
                 switchMobileTab(activeMobileTab);
             } else {
-                // PC時は全セクションを表示状態に
+                // 大画面PC → 全セクション表示
                 document.querySelectorAll('.mobile-section').forEach(sec => {
-                    sec.classList.remove('active-section'); // スマホ用クラスは外す
+                    sec.classList.remove('active-section');
+                    sec.style.display = '';
                 });
             }
         }

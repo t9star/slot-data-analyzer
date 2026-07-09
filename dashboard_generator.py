@@ -136,7 +136,7 @@ def generate_dashboard():
         
     for t_date in target_dates:
         all_predictions_data[t_date] = {}
-        for m_type in ["default", "raise", "trend"]:
+        for m_type in ["default", "raise", "trend", "weekday"]:
             preds = analyzer.predict_next_hot_slots(t_date, model_type=m_type)
             if preds is not None and not preds.empty:
                 # pandas DataFrame を dict のリストに変換
@@ -159,6 +159,7 @@ def generate_dashboard():
     params_default = analyzer.load_prediction_parameters("default")
     params_raise = analyzer.load_prediction_parameters("raise")
     params_trend = analyzer.load_prediction_parameters("trend")
+    params_weekday = analyzer.load_prediction_parameters("weekday")
     accuracy_report = analyzer.get_prediction_accuracy_report(limit=5)
     
     # 順位ソートなどを調整
@@ -192,6 +193,10 @@ def generate_dashboard():
     if predictions_trend is None:
         predictions_trend = pd.DataFrame()
         
+    predictions_weekday = analyzer.predict_next_hot_slots(predict_date, model_type="weekday")
+    if predictions_weekday is None:
+        predictions_weekday = pd.DataFrame()
+        
     # 最近の出玉傾向および高設定濃厚台の集計結果を取得
     recent_trends = analyzer.get_recent_trends()
         
@@ -217,9 +222,11 @@ def generate_dashboard():
         predictions_default=predictions_default,
         predictions_raise=predictions_raise,
         predictions_trend=predictions_trend,
+        predictions_weekday=predictions_weekday,
         params_default=params_default,
         params_raise=params_raise,
         params_trend=params_trend,
+        params_weekday=params_weekday,
         
         recent_trends=recent_trends,
         calendar_data=calendar_data,

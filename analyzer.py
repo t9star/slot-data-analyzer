@@ -138,21 +138,32 @@ def load_prediction_parameters(model_type="default"):
             'weight_machine_avg': 0.3,
             'bonus_matching_digit': 250.0,
             'bonus_zoro_digit': 80.0,
-            'bonus_raise_target': 100.0
+            'bonus_raise_target': 100.0,
+            'bonus_weekday_pattern': 0
         },
         'raise': {
             'weight_slot_avg': 0.3,
             'weight_machine_avg': 0.2,
             'bonus_matching_digit': 80.0,
             'bonus_zoro_digit': 40.0,
-            'bonus_raise_target': 300.0
+            'bonus_raise_target': 300.0,
+            'bonus_weekday_pattern': 0
         },
         'trend': {
             'weight_slot_avg': 0.2,
             'weight_machine_avg': 0.2,
             'bonus_matching_digit': 450.0,
             'bonus_zoro_digit': 150.0,
-            'bonus_raise_target': 50.0
+            'bonus_raise_target': 50.0,
+            'bonus_weekday_pattern': 0
+        },
+        'weekday': {
+            'weight_slot_avg': 0.25,
+            'weight_machine_avg': 0.2,
+            'bonus_matching_digit': 150.0,
+            'bonus_zoro_digit': 50.0,
+            'bonus_raise_target': 80.0,
+            'bonus_weekday_pattern': 200.0
         }
     }
     
@@ -324,6 +335,45 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     df.loc[(df['last_diff'] < -1500) & (df['avg_diff'] > 100), 'score'] += params['bonus_raise_target']
     # 条件B: 3日間の累計差枚が -2500枚以下で、過去平均がプラス（>50）の台に追加ボーナス
     df.loc[(df['diff_3d'] < -2500) & (df['avg_diff'] > 50), 'score'] += params['bonus_raise_target']
+    
+    # 曜日パターンボーナス（特定の曜日に強い台を加点）
+    weekday_bonus = params.get('bonus_weekday_pattern', 0)
+    if weekday_bonus > 0:
+        target_weekday = target_date.weekday()  # 0=Mon, 6=Sun
+        conn2 = get_connection()
+        weekday_query = """
+        WITH latest_machines AS (
+            SELECT slot_number, machine_name
+            FROM slot_details
+            WHERE date = (SELECT MAX(date) FROM daily_summary WHERE date < ?)
+        )
+        SELECT 
+            sd.slot_number,
+            AVG(sd.diff) as weekday_avg_diff,
+            COUNT(sd.date) as weekday_count
+        FROM slot_details sd
+        JOIN latest_machines lm 
+          ON sd.slot_number = lm.slot_number 
+         AND sd.machine_name = lm.machine_name
+        WHERE sd.date < ?
+          AND CAST(strftime('%w', sd.date) AS INTEGER) = ?
+        GROUP BY sd.slot_number
+        HAVING weekday_count >= 2
+        """
+        # SQLite's strftime('%w') returns 0=Sunday, 1=Monday, ..., 6=Saturday
+        # Python's weekday() returns 0=Monday, ..., 6=Sunday
+        # Convert Python weekday to SQLite: (python_weekday + 1) % 7
+        sqlite_weekday = (target_weekday + 1) % 7
+        weekday_df = pd.read_sql_query(weekday_query, conn2, params=(target_date_str, target_date_str, sqlite_weekday))
+        conn2.close()
+        
+        if not weekday_df.empty:
+            df = pd.merge(df, weekday_df[['slot_number', 'weekday_avg_diff']], on='slot_number', how='left')
+            df['weekday_avg_diff'] = df['weekday_avg_diff'].fillna(0)
+            # 曜日別平均差枚がプラスの台にボーナス加算（比例配分）
+            df.loc[df['weekday_avg_diff'] > 0, 'score'] += weekday_bonus
+            # さらに曜日別平均がかなり高い台（+500以上）は追加ボーナス
+            df.loc[df['weekday_avg_diff'] > 500, 'score'] += weekday_bonus * 0.5
     
     # スコア順にソートしてトップ20を返す
     df['score'] = df['score'].round(1)
@@ -876,7 +926,7 @@ def get_prediction_accuracy_report(limit=5):
         return []
         
     report = []
-    model_types = ['default', 'raise', 'trend']
+    model_types = ['default', 'raise', 'trend', 'weekday']
     
     # あらかじめ全モデルの現在のパラメータをロードしておく
     model_params = {m: load_prediction_parameters(m) for m in model_types}

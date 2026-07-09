@@ -533,9 +533,9 @@
             text-overflow: ellipsis;
         }
 
-        /* ボトムナビゲーションバー */
+        /* ボトムナビゲーションバー（常時表示、大画面PCのみ非表示） */
         .bottom-nav {
-            display: none;
+            display: flex;
             position: fixed;
             bottom: 0;
             left: 0;
@@ -584,30 +584,32 @@
             font-weight: 600;
         }
 
-        /* スマホ向けメディアクエリ */
-        @media (max-width: 992px) {
+        /* 大画面PC向け：ボトムナビを非表示にし、全セクション表示 */
+        @media (min-width: 1200px) {
             .bottom-nav {
-                display: flex;
+                display: none !important;
             }
-            body {
-                padding-bottom: 85px !important;
-            }
-            /* スマホのときは各セクションをデフォルト非表示 */
-            .mobile-section {
-                display: none;
-            }
-            .mobile-section.active-section {
-                display: block !important;
-                animation: fadeInSection 0.3s ease;
-            }
-            /* テーブルカラムのレスポンシブ非表示 */
+        }
+
+        /* モバイル・タブレット向けの微調整 */
+        body {
+            padding-bottom: 85px;
+        }
+        .mobile-section {
+            display: none;
+        }
+        .mobile-section.active-section {
+            display: block !important;
+            animation: fadeInSection 0.3s ease;
+        }
+        /* テーブルカラムのレスポンシブ非表示（タッチデバイス） */
+        @media (max-width: 1199px) {
             .col-recorded-days, .col-machine-avg-diff {
                 display: none !important;
             }
             .mobile-subtext {
                 display: block !important;
             }
-            /* 余白の最小化 */
             .container {
                 padding: 10px !important;
             }
@@ -627,6 +629,15 @@
             }
             .kpi-value {
                 font-size: 1.2rem !important;
+            }
+        }
+        /* 大画面PCではbodyの余白不要 */
+        @media (min-width: 1200px) {
+            body {
+                padding-bottom: 0 !important;
+            }
+            .mobile-section {
+                display: block !important;
             }
         }
         
@@ -715,15 +726,18 @@
             </div>
             
             <!-- 予測モデル切り替えタブ -->
-            <div class="model-tabs-container" style="display: flex; gap: 8px; margin-bottom: 20px;">
-                <button onclick="switchPredictionModel('default')" id="tab-model-default" class="model-tab active" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid var(--primary-color); background: rgba(0, 186, 242, 0.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+            <div class="model-tabs-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;">
+                <button onclick="switchPredictionModel('default')" id="tab-model-default" class="model-tab active" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid var(--primary-color); background: rgba(0, 186, 242, 0.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
                     ⚖️ バランス型
                 </button>
-                <button onclick="switchPredictionModel('raise')" id="tab-model-raise" class="model-tab" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                <button onclick="switchPredictionModel('raise')" id="tab-model-raise" class="model-tab" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
                     🔄 上げ狙い特化
                 </button>
-                <button onclick="switchPredictionModel('trend')" id="tab-model-trend" class="model-tab" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                <button onclick="switchPredictionModel('trend')" id="tab-model-trend" class="model-tab" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
                     🎯 末尾・ゾロ目特化
+                </button>
+                <button onclick="switchPredictionModel('weekday')" id="tab-model-weekday" class="model-tab" style="flex: 1; min-width: 100px; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                    📅 曜日パターン
                 </button>
             </div>
             
@@ -742,6 +756,7 @@
                                         <th style="color: var(--primary-color);">バランス型 ⚖️</th>
                                         <th style="color: var(--success-color);">上げ狙い型 🔄</th>
                                         <th style="color: var(--accent-color);">末尾特化型 🎯</th>
+                                        <th style="color: #a78bfa;">曜日型 📅</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -750,31 +765,45 @@
                                         <td style="font-weight: 600;">{{ r.date }}</td>
                                         
                                         <!-- バランス型 -->
-                                        <td style="text-align: center; background: rgba(0, 186, 242, 0.02); {% if r.default.avg_diff >= r.raise.avg_diff and r.default.avg_diff >= r.trend.avg_diff %}border: 1px solid var(--primary-color); font-weight: bold;{% endif %}">
+                                        {% set weekday_diff = r.weekday.avg_diff if r.weekday is defined else 0 %}
+                                        <td style="text-align: center; background: rgba(0, 186, 242, 0.02); {% if r.default.avg_diff >= r.raise.avg_diff and r.default.avg_diff >= r.trend.avg_diff and r.default.avg_diff >= weekday_diff %}border: 1px solid var(--primary-color); font-weight: bold;{% endif %}">
                                             <span style="color: {% if r.default.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
                                                 {{ "{:+,}".format(r.default.avg_diff) }}枚
                                             </span>
                                             <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: {{ r.default.win_rate }}%</div>
-                                            {% if r.default.avg_diff >= r.raise.avg_diff and r.default.avg_diff >= r.trend.avg_diff %}<span style="color: var(--primary-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
+                                            {% if r.default.avg_diff >= r.raise.avg_diff and r.default.avg_diff >= r.trend.avg_diff and r.default.avg_diff >= weekday_diff %}<span style="color: var(--primary-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
                                         </td>
                                         
                                         <!-- 上げ狙い型 -->
-                                        <td style="text-align: center; background: rgba(46, 204, 113, 0.02); {% if r.raise.avg_diff >= r.default.avg_diff and r.raise.avg_diff >= r.trend.avg_diff %}border: 1px solid var(--success-color); font-weight: bold;{% endif %}">
+                                        <td style="text-align: center; background: rgba(46, 204, 113, 0.02); {% if r.raise.avg_diff >= r.default.avg_diff and r.raise.avg_diff >= r.trend.avg_diff and r.raise.avg_diff >= weekday_diff %}border: 1px solid var(--success-color); font-weight: bold;{% endif %}">
                                             <span style="color: {% if r.raise.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
                                                 {{ "{:+,}".format(r.raise.avg_diff) }}枚
                                             </span>
                                             <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: {{ r.raise.win_rate }}%</div>
-                                            {% if r.raise.avg_diff >= r.default.avg_diff and r.raise.avg_diff >= r.trend.avg_diff %}<span style="color: var(--success-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
+                                            {% if r.raise.avg_diff >= r.default.avg_diff and r.raise.avg_diff >= r.trend.avg_diff and r.raise.avg_diff >= weekday_diff %}<span style="color: var(--success-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
                                         </td>
                                         
                                         <!-- 末尾特化型 -->
-                                        <td style="text-align: center; background: rgba(255, 51, 102, 0.02); {% if r.trend.avg_diff >= r.default.avg_diff and r.trend.avg_diff >= r.raise.avg_diff %}border: 1px solid var(--accent-color); font-weight: bold;{% endif %}">
+                                        <td style="text-align: center; background: rgba(255, 51, 102, 0.02); {% if r.trend.avg_diff >= r.default.avg_diff and r.trend.avg_diff >= r.raise.avg_diff and r.trend.avg_diff >= weekday_diff %}border: 1px solid var(--accent-color); font-weight: bold;{% endif %}">
                                             <span style="color: {% if r.trend.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
                                                 {{ "{:+,}".format(r.trend.avg_diff) }}枚
                                             </span>
                                             <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: {{ r.trend.win_rate }}%</div>
-                                            {% if r.trend.avg_diff >= r.default.avg_diff and r.trend.avg_diff >= r.raise.avg_diff %}<span style="color: var(--accent-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
+                                            {% if r.trend.avg_diff >= r.default.avg_diff and r.trend.avg_diff >= r.raise.avg_diff and r.trend.avg_diff >= weekday_diff %}<span style="color: var(--accent-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
                                         </td>
+                                        
+                                        <!-- 曜日パターン型 -->
+                                        {% if r.weekday is defined %}
+                                        <td style="text-align: center; background: rgba(167, 139, 250, 0.02); {% if weekday_diff >= r.default.avg_diff and weekday_diff >= r.raise.avg_diff and weekday_diff >= r.trend.avg_diff %}border: 1px solid #a78bfa; font-weight: bold;{% endif %}">
+                                            <span style="color: {% if r.weekday.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                                {{ "{:+,}".format(r.weekday.avg_diff) }}枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: {{ r.weekday.win_rate }}%</div>
+                                            {% if weekday_diff >= r.default.avg_diff and weekday_diff >= r.raise.avg_diff and weekday_diff >= r.trend.avg_diff %}<span style="color: #a78bfa; font-size: 0.75rem;">👑 最優秀</span>{% endif %}
+                                        </td>
+                                        {% else %}
+                                        <td style="text-align: center; color: var(--text-muted);">-</td>
+                                        {% endif %}
                                         
                                     </tr>
                                     {% endfor %}
@@ -790,7 +819,7 @@
                 <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid rgba(255,255,255,0.05); padding-left: 20px;">
                     <div style="font-size: 0.85rem; font-weight: bold; color: #fff; margin-bottom: 5px;">予測の複数モデル比較とは？</div>
                     <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
-                        狙い台のアプローチが異なる3つのAIモデル（バランス・上げ狙い特化・末尾ゾロ目特化）が、過去の特定日にどれだけ的中していたかを比較します。直近で最も「👑最優秀」が多いモデルが今最も有効な戦略となります。
+                        狙い台のアプローチが異なる4つのAIモデル（バランス・上げ狙い特化・末尾ゾロ目特化・曜日パターン）が、過去の特定日にどれだけ的中していたかを比較します。直近で最も「👑最優秀」が多いモデルが今最も有効な戦略となります。
                     </p>
                 </div>
             </div>
@@ -905,6 +934,39 @@
                             </td>
                             <td>
                                 <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); color: var(--accent-color);">
+                                    {{ row['score'] }} pts
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tbody id="predictions-tbody-weekday" class="predictions-tbody-group" style="display: none;">
+                        {% for index, row in predictions_weekday.iterrows() %}
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#{{ loop.index }}</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
+                                {{ row['slot_number'] }}
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    {{ row['recorded_days'] }}日 | 機種平均: {{ "{:+,}".format(row['machine_avg_diff']) }}枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                    {{ "{:+,}".format(row['avg_diff']) }}
+                                </span>
+                            </td>
+                            <td class="col-machine-avg-diff">{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td>
+                                <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
+                                    {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;">
                                     {{ row['score'] }} pts
                                 </span>
                             </td>
@@ -1502,6 +1564,14 @@
                 b_match: {{ params_trend.bonus_matching_digit }},
                 b_zoro: {{ params_trend.bonus_zoro_digit }},
                 b_raise: {{ params_trend.bonus_raise_target }}
+            },
+            weekday: {
+                w_slot: {{ params_weekday.weight_slot_avg }},
+                w_mach: {{ params_weekday.weight_machine_avg }},
+                b_match: {{ params_weekday.bonus_matching_digit }},
+                b_zoro: {{ params_weekday.bonus_zoro_digit }},
+                b_raise: {{ params_weekday.bonus_raise_target }},
+                b_weekday: {{ params_weekday.bonus_weekday_pattern }}
             }
         };
 
@@ -1528,6 +1598,9 @@
             } else if (modelType === 'trend') {
                 activeColor = 'var(--accent-color)';
                 activeBg = 'rgba(255, 51, 102, 0.1)';
+            } else if (modelType === 'weekday') {
+                activeColor = '#a78bfa';
+                activeBg = 'rgba(167, 139, 250, 0.1)';
             }
             activeTab.style.background = activeBg;
             activeTab.style.borderColor = activeColor;
@@ -1535,13 +1608,16 @@
             
             // パラメータ表示部分の差し替え
             const p = modelParams[modelType];
-            const paramsHtml = `
+            let paramsHtml = `
                 台平均: <span style="color:#fff; font-weight:600;">${p.w_slot}</span> | 
                 機種平均: <span style="color:#fff; font-weight:600;">${p.w_mach}</span> | 
                 末尾: <span style="color:#fff; font-weight:600;">+${p.b_match}</span> | 
                 ゾロ目: <span style="color:#fff; font-weight:600;">+${p.b_zoro}</span> | 
                 上げ: <span style="color:#fff; font-weight:600;">+${p.b_raise}</span>
             `;
+            if (modelType === 'weekday' && p.b_weekday !== undefined) {
+                paramsHtml += ` | 曜日: <span style="color:#a78bfa; font-weight:600;">+${p.b_weekday}</span>`;
+            }
             document.getElementById('params-display-area').innerHTML = paramsHtml;
             
             // 日付変更されていなければ、単純に非同期テーブル表示切り替え
@@ -1581,11 +1657,13 @@
                     badgeStyle = 'background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: var(--success-color);';
                 } else if (currentModel === 'trend') {
                     badgeStyle = 'background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); color: var(--accent-color);';
+                } else if (currentModel === 'weekday') {
+                    badgeStyle = 'background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); color: #a78bfa;';
                 }
                 
                 html += `
                     <tr>
-                        <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : 'var(--accent-color)')};">#${idx + 1}</td>
+                        <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : (currentModel === 'weekday' ? '#a78bfa' : 'var(--accent-color)'))};">#${idx + 1}</td>
                         <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
                             ${row.slot_number}
                         </td>
@@ -2192,9 +2270,16 @@
         // スマホ用モバイルタブ表示切り替え
         let activeMobileTab = 'predictions';
 
+        // ボトムナビが実際にCSS上で表示されているかを直接確認する
+        // (window.innerWidthに頼らず、レンダリングエンジンの最終判断を使う)
+        function isBottomNavVisible() {
+            const nav = document.querySelector('.bottom-nav');
+            if (!nav) return false;
+            return window.getComputedStyle(nav).display !== 'none';
+        }
+
         function switchMobileTab(tabId) {
-            const isMobile = window.innerWidth <= 992;
-            if (!isMobile) return;
+            if (!isBottomNavVisible()) return;
             
             activeMobileTab = tabId;
             
@@ -2212,6 +2297,9 @@
             const activeSec = document.getElementById(`section-${tabId}`);
             if (activeSec) activeSec.classList.add('active-section');
             
+            // 3. ページトップへスクロール
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
             // Plotlyのレイアウトが崩れないように自動リサイズをトリガーする
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
@@ -2220,15 +2308,14 @@
 
         // スマホ・PC環境の自動初期化とリサイズ監視
         function initMobileLayout() {
-            const isMobile = window.innerWidth <= 992;
-            
-            if (isMobile) {
-                // スマホ時は現在のタブのみ表示
+            if (isBottomNavVisible()) {
+                // ボトムナビが表示されている環境 → タブモードで動作
                 switchMobileTab(activeMobileTab);
             } else {
-                // PC時は全セクションを表示状態に
+                // 大画面PC → 全セクション表示
                 document.querySelectorAll('.mobile-section').forEach(sec => {
-                    sec.classList.remove('active-section'); // スマホ用クラスは外す
+                    sec.classList.remove('active-section');
+                    sec.style.display = '';
                 });
             }
         }
