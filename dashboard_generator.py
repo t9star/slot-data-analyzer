@@ -93,7 +93,56 @@ def generate_dashboard():
     cursor.execute("SELECT DISTINCT machine_name FROM slot_details ORDER BY machine_name")
     machines = [r[0] for r in cursor.fetchall()]
     
+    # 2-3. 全台の個別データ履歴 (直近10日分) の取得
+    cursor.execute("""
+        WITH ranked_history AS (
+            SELECT 
+                slot_number, 
+                machine_name,
+                date, 
+                games, 
+                diff, 
+                ROW_NUMBER() OVER (PARTITION BY slot_number ORDER BY date DESC) as rn
+            FROM slot_details
+        )
+        SELECT slot_number, machine_name, date, games, diff 
+        FROM ranked_history 
+        WHERE rn <= 10
+        ORDER BY slot_number, date DESC
+    """)
+    
+    slot_history_data = {}
+    for row in cursor.fetchall():
+        slot_num = row[0]
+        if slot_num not in slot_history_data:
+            slot_history_data[slot_num] = []
+        
+        slot_history_data[slot_num].append({
+            "machine_name": row[1],
+            "date": row[2],
+            "games": row[3] if row[3] is not None else 0,
+            "diff": row[4] if row[4] is not None else 0,
+            "winning": True if row[4] is not None and row[4] > 0 else False
+        })
+        
     conn.close()
+    
+    # 2-4. カレンダーに存在する全日程の3モデル分の予測データを事前構築
+    all_predictions_data = {}
+    target_dates = [c["date"] for c in calendar_data]
+    next_date = get_next_special_date(end_date)
+    if next_date not in target_dates:
+        target_dates.append(next_date)
+        
+    for t_date in target_dates:
+        all_predictions_data[t_date] = {}
+        for m_type in ["default", "raise", "trend"]:
+            preds = analyzer.predict_next_hot_slots(t_date, model_type=m_type)
+            if preds is not None and not preds.empty:
+                # pandas DataFrame を dict のリストに変換
+                all_predictions_data[t_date][m_type] = preds.to_dict(orient="records")
+            else:
+                all_predictions_data[t_date][m_type] = []
     
     # 3. 各種分析データの取得 (from analyzer.py)
     day_stats = analyzer.analyze_special_days()
@@ -179,7 +228,9 @@ def generate_dashboard():
         setting_habits=setting_habits,
         recommendations=recommendations,
         accuracy_report=accuracy_report,
-        machines=machines
+        machines=machines,
+        slot_history_data=slot_history_data,
+        all_predictions_data=all_predictions_data
     )
     
     # ファイルに書き出し

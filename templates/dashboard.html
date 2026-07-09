@@ -1417,6 +1417,69 @@
             }
         }
 
+        function renderPredictionTableRows(data, activeTbody) {
+            if (data.length === 0) {
+                activeTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付のデータが不足しているか、予測できません。</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            data.forEach((row, idx) => {
+                const diffVal = row.avg_diff;
+                const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString();
+                
+                const mDiffVal = row.machine_avg_diff;
+                const mDiffText = (mDiffVal >= 0 ? '+' : '') + mDiffVal.toLocaleString();
+                
+                const lastDiffVal = row.last_diff;
+                const lastDiffColor = lastDiffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                const lastDiffText = row.last_games >= 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
+                
+                let badgeStyle = '';
+                if (currentModel === 'raise') {
+                    badgeStyle = 'background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: var(--success-color);';
+                } else if (currentModel === 'trend') {
+                    badgeStyle = 'background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); color: var(--accent-color);';
+                }
+                
+                html += `
+                    <tr>
+                        <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : 'var(--accent-color)')};">#${idx + 1}</td>
+                        <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
+                            ${row.slot_number}
+                        </td>
+                        <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
+                        <td>${row.recorded_days}日分</td>
+                        <td>
+                            <span style="color: ${diffColor};">
+                                ${diffText}
+                            </span>
+                        </td>
+                        <td>${mDiffText}</td>
+                        <td>
+                            <span style="color: ${lastDiffColor}; font-size: 0.9rem;">
+                                ${lastDiffText}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; ${badgeStyle}">
+                                ${row.score.toFixed(1)} pts
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            activeTbody.innerHTML = html;
+            
+            const tbodies = document.querySelectorAll('.predictions-tbody-group');
+            tbodies.forEach(tb => {
+                if (tb.id !== `predictions-tbody-${currentModel}`) {
+                    tb.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">日付が変更されました。このモデルの予測を表示するにはタブを選択してください。</td></tr>`;
+                }
+            });
+        }
+
         function loadPredictions() {
             const datePicker = document.getElementById('predict-date-picker');
             const date = datePicker.value;
@@ -1432,78 +1495,31 @@
             const activeTbody = document.getElementById(`predictions-tbody-${currentModel}`);
             activeTbody.style.display = 'table-row-group';
             
-            fetch(`/api/predict?date=${date}&model_type=${currentModel}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) {
-                        activeTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">エラー: ${data.error}</td></tr>`;
-                        return;
-                    }
-                    
-                    if (data.length === 0) {
-                        activeTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付のデータが不足しているか、予測できません。</td></tr>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    data.forEach((row, idx) => {
-                        const diffVal = row.avg_diff;
-                        const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-                        const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString();
-                        
-                        const mDiffVal = row.machine_avg_diff;
-                        const mDiffText = (mDiffVal >= 0 ? '+' : '') + mDiffVal.toLocaleString();
-                        
-                        const lastDiffVal = row.last_diff;
-                        const lastDiffColor = lastDiffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-                        const lastDiffText = row.last_games >= 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
-                        
-                        let badgeStyle = '';
-                        if (currentModel === 'raise') {
-                            badgeStyle = 'background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: var(--success-color);';
-                        } else if (currentModel === 'trend') {
-                            badgeStyle = 'background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); color: var(--accent-color);';
+            // 1. まず事前構築済みのインラインデータがあるかチェック
+            if (allPredictionsData && allPredictionsData[date] && allPredictionsData[date][currentModel]) {
+                renderPredictionTableRows(allPredictionsData[date][currentModel], activeTbody);
+                return;
+            }
+            
+            // 2. なければローカル環境のときのみ API から動的取得 (フォールバック)
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (isLocal) {
+                fetch(`/api/predict?date=${date}&model_type=${currentModel}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            activeTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">エラー: ${data.error}</td></tr>`;
+                            return;
                         }
-                        
-                        html += `
-                            <tr>
-                                <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : 'var(--accent-color)')};">#${idx + 1}</td>
-                                <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
-                                    ${row.slot_number}
-                                </td>
-                                <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
-                                <td>${row.recorded_days}日分</td>
-                                <td>
-                                    <span style="color: ${diffColor};">
-                                        ${diffText}
-                                    </span>
-                                </td>
-                                <td>${mDiffText}</td>
-                                <td>
-                                    <span style="color: ${lastDiffColor}; font-size: 0.9rem;">
-                                        ${lastDiffText}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; ${badgeStyle}">
-                                        ${row.score.toFixed(1)} pts
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
+                        renderPredictionTableRows(data, activeTbody);
+                    })
+                    .catch(err => {
+                        console.error('Failed to load predictions', err);
+                        activeTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">データの取得に失敗しました。</td></tr>';
                     });
-                    activeTbody.innerHTML = html;
-                    
-                    tbodies.forEach(tb => {
-                        if (tb.id !== `predictions-tbody-${currentModel}`) {
-                            tb.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">日付が変更されました。このモデルの予測を表示するにはタブを選択してください。</td></tr>`;
-                        }
-                    });
-                })
-                .catch(err => {
-                    console.error('Failed to load predictions', err);
-                    activeTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">データの取得に失敗しました。</td></tr>';
-                });
+            } else {
+                activeTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付の予測データは存在しません。</td></tr>';
+            }
         }
 
         // 5. 実績カレンダー描画ロジック
@@ -1954,49 +1970,35 @@
             const tbody = document.getElementById('modal-history-tbody');
             
             slotNumEl.textContent = slotNumber;
-            machineEl.textContent = '読み込み中...';
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--accent-color); padding:20px;">履歴データを取得中...</td></tr>';
-            
             modal.style.display = 'flex';
             
-            fetch(`/api/slot/history?slot_number=${slotNumber}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger-color); padding:20px;">エラー: ${data.error}</td></tr>`;
-                        return;
-                    }
-                    
-                    if (data.history.length === 0) {
-                        machineEl.textContent = 'データなし';
-                        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">過去10日間のデータが存在しません。</td></tr>';
-                        return;
-                    }
-                    
-                    machineEl.textContent = data.history[0].machine_name;
-                    
-                    let html = '';
-                    data.history.forEach(h => {
-                        const diffVal = h.diff;
-                        const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-                        const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString() + ' 枚';
-                        const winBadge = h.winning ? '<span style="background:rgba(28,126,76,0.2); color:var(--success-color); padding:2px 6px; border-radius:4px; font-size:0.75rem;">🌟 勝利</span>' : '<span style="background:rgba(255,255,255,0.03); color:var(--text-muted); padding:2px 6px; border-radius:4px; font-size:0.75rem;">敗北</span>';
-                        
-                        html += `
-                            <tr>
-                                <td style="font-family:monospace;">${h.date}</td>
-                                <td>${h.games.toLocaleString()} G</td>
-                                <td><span style="color:${diffColor}; font-weight:600;">${diffText}</span></td>
-                                <td>${winBadge}</td>
-                            </tr>
-                        `;
-                    });
-                    tbody.innerHTML = html;
-                })
-                .catch(err => {
-                    console.error(err);
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--danger-color); padding:20px;">通信エラーが発生しました。</td></tr>';
-                });
+            const history = slotHistoryData[slotNumber] || [];
+            
+            if (history.length === 0) {
+                machineEl.textContent = 'データなし';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">過去10日間のデータが存在しません。</td></tr>';
+                return;
+            }
+            
+            machineEl.textContent = history[0].machine_name;
+            
+            let html = '';
+            history.forEach(h => {
+                const diffVal = h.diff;
+                const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString() + ' 枚';
+                const winBadge = h.winning ? '<span style="background:rgba(28,126,76,0.2); color:var(--success-color); padding:2px 6px; border-radius:4px; font-size:0.75rem;">🌟 勝利</span>' : '<span style="background:rgba(255,255,255,0.03); color:var(--text-muted); padding:2px 6px; border-radius:4px; font-size:0.75rem;">敗北</span>';
+                
+                html += `
+                    <tr>
+                        <td style="font-family:monospace;">${h.date}</td>
+                        <td>${h.games.toLocaleString()} G</td>
+                        <td><span style="color:${diffColor}; font-weight:600;">${diffText}</span></td>
+                        <td>${winBadge}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
         }
         
         function closeSlotHistory() {
