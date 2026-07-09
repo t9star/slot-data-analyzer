@@ -663,7 +663,7 @@
                     <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
                     <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
                 </div>
-                <p>ダッシュボード生成日時: 2026-07-09 20:00:14</p>
+                <p>ダッシュボード生成日時: 2026-07-09 20:15:42</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-07-08</p>
             </div>
         </header>
@@ -4303,7 +4303,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-07</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2065 - 2067</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / Lうみねこのなく頃に2 / LB SHAKE BONUS TRIGGER</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / LB SHAKE BONUS TRIGGER / Lうみねこのなく頃に2</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,809枚
@@ -4764,19 +4764,19 @@
 
     <!-- スマホ専用ボトムナビゲーションバー -->
     <div class="bottom-nav">
-        <div class="bottom-nav-item active" id="tab-btn-predictions" onclick="switchMobileTab('predictions')">
+        <div class="bottom-nav-item active" id="tab-btn-predictions" onclick="switchMobileTab('predictions', true)">
             <span class="bottom-nav-icon">🎯</span>
             <span class="bottom-nav-label">期待予測</span>
         </div>
-        <div class="bottom-nav-item" id="tab-btn-calendar" onclick="switchMobileTab('calendar')">
+        <div class="bottom-nav-item" id="tab-btn-calendar" onclick="switchMobileTab('calendar', true)">
             <span class="bottom-nav-icon">📅</span>
             <span class="bottom-nav-label">カレンダー</span>
         </div>
-        <div class="bottom-nav-item" id="tab-btn-habits" onclick="switchMobileTab('habits')">
+        <div class="bottom-nav-item" id="tab-btn-habits" onclick="switchMobileTab('habits', true)">
             <span class="bottom-nav-icon">📊</span>
             <span class="bottom-nav-label">癖分析</span>
         </div>
-        <div class="bottom-nav-item" id="tab-btn-validation" onclick="switchMobileTab('validation')">
+        <div class="bottom-nav-item" id="tab-btn-validation" onclick="switchMobileTab('validation', true)">
             <span class="bottom-nav-icon">🔍</span>
             <span class="bottom-nav-label">実績検証</span>
         </div>
@@ -5688,7 +5688,10 @@
             return window.getComputedStyle(nav).display !== 'none';
         }
 
-        function switchMobileTab(tabId) {
+        let lastWindowWidth = window.innerWidth;
+        let lastWindowHeight = window.innerHeight;
+
+        function switchMobileTab(tabId, shouldScroll = false) {
             if (!isBottomNavVisible()) return;
             
             activeMobileTab = tabId;
@@ -5707,20 +5710,34 @@
             const activeSec = document.getElementById(`section-${tabId}`);
             if (activeSec) activeSec.classList.add('active-section');
             
-            // 3. ページトップへスクロール
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // 3. ページトップへスクロール（ユーザーの明示的なクリック時のみ）
+            if (shouldScroll) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
             
             // Plotlyのレイアウトが崩れないように自動リサイズをトリガーする
+            // (これはグローバルなresizeイベントを発生させますが、initMobileLayout側で幅・高さ変更なしとして無視されます)
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
             }, 100);
         }
 
         // スマホ・PC環境の自動初期化とリサイズ監視
-        function initMobileLayout() {
+        function initMobileLayout(force = false) {
+            const currentWidth = window.innerWidth;
+            const currentHeight = window.innerHeight;
+            
+            // ウインドウの幅も高さも変わっていない場合は、Plotly等の自動リサイズなので無視する
+            if (!force && currentWidth === lastWindowWidth && currentHeight === lastWindowHeight) {
+                return;
+            }
+            
+            lastWindowWidth = currentWidth;
+            lastWindowHeight = currentHeight;
+            
             if (isBottomNavVisible()) {
-                // ボトムナビが表示されている環境 → タブモードで動作
-                switchMobileTab(activeMobileTab);
+                // ボトムナビが表示されている環境 → タブモードで動作 (自動リサイズなのでスクロールはさせない)
+                switchMobileTab(activeMobileTab, false);
             } else {
                 // 大画面PC → 全セクション表示
                 document.querySelectorAll('.mobile-section').forEach(sec => {
@@ -5730,16 +5747,16 @@
             }
         }
 
-        window.addEventListener('resize', initMobileLayout);
+        window.addEventListener('resize', () => initMobileLayout(false));
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 initEnvironmentCheck();
-                initMobileLayout();
+                initMobileLayout(true); // 初回は強制実行
             });
         } else {
             initEnvironmentCheck();
-            initMobileLayout();
+            initMobileLayout(true); // 初回は強制実行
         }
     </script>
 
