@@ -1878,6 +1878,53 @@
         function closeSlotHistory() {
             document.getElementById('slot-history-modal').style.display = 'none';
         }
+
+        function initEnvironmentCheck() {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            if (!isLocal) {
+                const btnTune = document.getElementById('btn-tune-ai');
+                const btnUpdate = document.getElementById('btn-update-data');
+                const btnGoraggio = document.getElementById('btn-update-goraggio');
+                
+                if (btnTune) {
+                    btnTune.disabled = true;
+                    btnTune.style.background = '#222';
+                    btnTune.style.backgroundImage = 'none';
+                    btnTune.style.borderColor = '#444';
+                    btnTune.style.color = 'var(--text-muted)';
+                    btnTune.style.cursor = 'not-allowed';
+                    btnTune.title = 'AI学習は自宅PC（ローカル起動時）のみ実行可能です';
+                    btnTune.textContent = '🔒 AI学習 (ローカル専用)';
+                }
+                if (btnUpdate) {
+                    btnUpdate.disabled = true;
+                    btnUpdate.style.background = '#222';
+                    btnUpdate.style.backgroundImage = 'none';
+                    btnUpdate.style.borderColor = '#444';
+                    btnUpdate.style.color = 'var(--text-muted)';
+                    btnUpdate.style.cursor = 'not-allowed';
+                    btnUpdate.title = 'データ取得は自宅PC（ローカル起動時）のみ実行可能です';
+                    btnUpdate.textContent = '🔒 手動取得 (ローカル専用)';
+                }
+                if (btnGoraggio) {
+                    btnGoraggio.disabled = true;
+                    btnGoraggio.style.background = '#222';
+                    btnGoraggio.style.backgroundImage = 'none';
+                    btnGoraggio.style.borderColor = '#444';
+                    btnGoraggio.style.color = 'var(--text-muted)';
+                    btnGoraggio.style.cursor = 'not-allowed';
+                    btnGoraggio.title = 'データ回収は自宅PC（ローカル起動時）のみ実行可能です';
+                    btnGoraggio.textContent = '🔒 通常営業日データを回収 (ローカル専用)';
+                }
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initEnvironmentCheck);
+        } else {
+            initEnvironmentCheck();
+        }
     </script>
 
     <!-- 台番号個別履歴モーダル -->

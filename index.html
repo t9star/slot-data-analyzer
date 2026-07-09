@@ -501,7 +501,7 @@
                     <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
                     <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
                 </div>
-                <p>ダッシュボード生成日時: 2026-07-09 19:24:26</p>
+                <p>ダッシュボード生成日時: 2026-07-09 19:26:48</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-07-08</p>
             </div>
         </header>
@@ -3170,7 +3170,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-07</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2065 - 2067</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / LB SHAKE BONUS TRIGGER / Lうみねこのなく頃に2</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / Lうみねこのなく頃に2 / LB SHAKE BONUS TRIGGER</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,809枚
@@ -4090,6 +4090,53 @@
         
         function closeSlotHistory() {
             document.getElementById('slot-history-modal').style.display = 'none';
+        }
+
+        function initEnvironmentCheck() {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            if (!isLocal) {
+                const btnTune = document.getElementById('btn-tune-ai');
+                const btnUpdate = document.getElementById('btn-update-data');
+                const btnGoraggio = document.getElementById('btn-update-goraggio');
+                
+                if (btnTune) {
+                    btnTune.disabled = true;
+                    btnTune.style.background = '#222';
+                    btnTune.style.backgroundImage = 'none';
+                    btnTune.style.borderColor = '#444';
+                    btnTune.style.color = 'var(--text-muted)';
+                    btnTune.style.cursor = 'not-allowed';
+                    btnTune.title = 'AI学習は自宅PC（ローカル起動時）のみ実行可能です';
+                    btnTune.textContent = '🔒 AI学習 (ローカル専用)';
+                }
+                if (btnUpdate) {
+                    btnUpdate.disabled = true;
+                    btnUpdate.style.background = '#222';
+                    btnUpdate.style.backgroundImage = 'none';
+                    btnUpdate.style.borderColor = '#444';
+                    btnUpdate.style.color = 'var(--text-muted)';
+                    btnUpdate.style.cursor = 'not-allowed';
+                    btnUpdate.title = 'データ取得は自宅PC（ローカル起動時）のみ実行可能です';
+                    btnUpdate.textContent = '🔒 手動取得 (ローカル専用)';
+                }
+                if (btnGoraggio) {
+                    btnGoraggio.disabled = true;
+                    btnGoraggio.style.background = '#222';
+                    btnGoraggio.style.backgroundImage = 'none';
+                    btnGoraggio.style.borderColor = '#444';
+                    btnGoraggio.style.color = 'var(--text-muted)';
+                    btnGoraggio.style.cursor = 'not-allowed';
+                    btnGoraggio.title = 'データ回収は自宅PC（ローカル起動時）のみ実行可能です';
+                    btnGoraggio.textContent = '🔒 通常営業日データを回収 (ローカル専用)';
+                }
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initEnvironmentCheck);
+        } else {
+            initEnvironmentCheck();
         }
     </script>
 
