@@ -196,7 +196,7 @@ def generate_dashboard():
     recent_trends = analyzer.get_recent_trends()
         
     # 5. Jinja2 テンプレートのレンダリング
-    env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
+    env = Environment(loader=FileSystemLoader(TEMPLATE_DIR, encoding="utf-8"))
     template = env.get_template("dashboard.html")
     
     rendered_html = template.render(
