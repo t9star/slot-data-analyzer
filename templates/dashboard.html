@@ -1226,6 +1226,12 @@
 
         // 3-2. 通常営業日データ回収（ゴラッジョ）API 連携
         function triggerGoraggioUpdate() {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isLocal) {
+                triggerCloudWorkflow('通常営業日のデータ回収');
+                return;
+            }
+            
             const btn = document.getElementById('btn-update-data');
             const btnGoraggio = document.getElementById('btn-update-goraggio');
             const statusText = document.getElementById('update-status');
@@ -1737,8 +1743,84 @@
             });
         }
 
+        // クラウドの GitHub Actions ワークフローを実行する共通関数
+        function triggerCloudWorkflow(actionName) {
+            let token = '';
+            try {
+                token = localStorage.getItem('github_pat_token') || '';
+            } catch (e) {
+                console.error('Storage read error:', e);
+            }
+            
+            if (!token) {
+                const promptMsg = `【🔑 オンライン実行のための GitHub 秘密キー登録】\n\n` +
+                                  `スマホ等からクラウド（GitHub）上で「${actionName}」を実行するには、あなたのアカウントの「個人用アクセストークン（PAT classic）」を一時的にブラウザに保存する必要があります。\n\n` +
+                                  `※キーはあなたのスマホ内にのみ保存され、開発者には一切送信されません。\n\n` +
+                                  `◆ トークンキーの作成方法（30秒）:\n` +
+                                  `1. ブラウザで「https://github.com/settings/tokens」を開きログイン\n` +
+                                  `2. 右上の「Generate new token (classic)」をクリック\n` +
+                                  `3. Note欄に「slot-data-analyzer」と入力\n` +
+                                  `4. Scope（権限）一覧から「repo」にチェックを入れる\n` +
+                                  `5. 最下部の「Generate token」ボタンを押し、表示された「ghp_」から始まるコードをコピーしてここに貼り付けてください。`;
+                
+                const userInput = prompt(promptMsg);
+                if (!userInput) return;
+                token = userInput.trim();
+                try {
+                    localStorage.setItem('github_pat_token', token);
+                } catch (e) {
+                    console.error('Storage write error:', e);
+                }
+            }
+            
+            const btnTune = document.getElementById('btn-tune-ai');
+            const btnGoraggio = document.getElementById('btn-update-goraggio');
+            
+            const originalTuneText = btnTune ? btnTune.textContent : '';
+            const originalGoraggioText = btnGoraggio ? btnGoraggio.textContent : '';
+            
+            if (btnTune) { btnTune.disabled = true; btnTune.textContent = '⏳ クラウド起動中...'; }
+            if (btnGoraggio) { btnGoraggio.disabled = true; btnGoraggio.textContent = '⏳ クラウド起動中...'; }
+            
+            fetch('https://api.github.com/repos/t9star/slot-data-analyzer/dispatches', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    event_type: 'manual_trigger'
+                })
+            })
+            .then(res => {
+                if (res.status === 204) {
+                    alert(`🚀 クラウドでの「${actionName}＆データ同期」処理を正常に起動しました！\n\n完了まで約1〜2分かかります。バックグラウンドでクラウドが自動的にスクレイピングと学習を回し、Webサイトを最新化します。しばらく経ってからページをリロード（再読み込み）してください。`);
+                } else {
+                    alert(`❌ 起動に失敗しました (ステータスコード: ${res.status})\n\n入力されたトークンの期限が切れているか、権限が足りない可能性があります。トークンを再設定するには、一度ボタンを押し直して再度入力してください。`);
+                    try {
+                        localStorage.removeItem('github_pat_token');
+                    } catch (e) {}
+                }
+                if (btnTune) { btnTune.disabled = false; btnTune.textContent = originalTuneText; }
+                if (btnGoraggio) { btnGoraggio.disabled = false; btnGoraggio.textContent = originalGoraggioText; }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('❌ 通信エラーが発生しました。ネットワーク接続を確認してください。');
+                if (btnTune) { btnTune.disabled = false; btnTune.textContent = originalTuneText; }
+                if (btnGoraggio) { btnGoraggio.disabled = false; btnGoraggio.textContent = originalGoraggioText; }
+            });
+        }
+
         // AI学習を実行
         function tuneAiModel() {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isLocal) {
+                triggerCloudWorkflow('AIパラメータの学習最適化');
+                return;
+            }
+            
             if (window.location.protocol === 'file:') {
                 alert('start.batから起動しているときのみ、AI学習を実行できます。');
                 return;
@@ -1888,14 +1970,13 @@
                 const btnGoraggio = document.getElementById('btn-update-goraggio');
                 
                 if (btnTune) {
-                    btnTune.disabled = true;
-                    btnTune.style.background = '#222';
-                    btnTune.style.backgroundImage = 'none';
-                    btnTune.style.borderColor = '#444';
-                    btnTune.style.color = 'var(--text-muted)';
-                    btnTune.style.cursor = 'not-allowed';
-                    btnTune.title = 'AI学習は自宅PC（ローカル起動時）のみ実行可能です';
-                    btnTune.textContent = '🔒 AI学習 (ローカル専用)';
+                    btnTune.disabled = false;
+                    btnTune.style.background = 'linear-gradient(135deg, var(--success-color) 0%, #1c7e4c 100%)';
+                    btnTune.style.borderColor = 'var(--success-color)';
+                    btnTune.style.color = '#fff';
+                    btnTune.style.cursor = 'pointer';
+                    btnTune.title = 'GitHub Actionsを遠隔起動してクラウド上でAI学習を実行します';
+                    btnTune.textContent = '🌐 オンラインAI学習 (クラウド)';
                 }
                 if (btnUpdate) {
                     btnUpdate.disabled = true;
@@ -1904,18 +1985,17 @@
                     btnUpdate.style.borderColor = '#444';
                     btnUpdate.style.color = 'var(--text-muted)';
                     btnUpdate.style.cursor = 'not-allowed';
-                    btnUpdate.title = 'データ取得は自宅PC（ローカル起動時）のみ実行可能です';
-                    btnUpdate.textContent = '🔒 手動取得 (ローカル専用)';
+                    btnUpdate.title = '全履歴の一括取得は自宅PC（ローカル起動時）のみ実行可能です';
+                    btnUpdate.textContent = '🔒 一括再取得 (ローカル専用)';
                 }
                 if (btnGoraggio) {
-                    btnGoraggio.disabled = true;
-                    btnGoraggio.style.background = '#222';
-                    btnGoraggio.style.backgroundImage = 'none';
-                    btnGoraggio.style.borderColor = '#444';
-                    btnGoraggio.style.color = 'var(--text-muted)';
-                    btnGoraggio.style.cursor = 'not-allowed';
-                    btnGoraggio.title = 'データ回収は自宅PC（ローカル起動時）のみ実行可能です';
-                    btnGoraggio.textContent = '🔒 通常営業日データを回収 (ローカル専用)';
+                    btnGoraggio.disabled = false;
+                    btnGoraggio.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, #177090 100%)';
+                    btnGoraggio.style.borderColor = 'var(--primary-color)';
+                    btnGoraggio.style.color = '#fff';
+                    btnGoraggio.style.cursor = 'pointer';
+                    btnGoraggio.title = 'GitHub Actionsを遠隔起動して通常営業日データを回収します';
+                    btnGoraggio.textContent = '🌐 通常データ回収 (クラウド)';
                 }
             }
         }

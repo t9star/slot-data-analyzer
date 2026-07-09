@@ -5,6 +5,8 @@ on:
     # 毎日 UTC 18:30 (日本時間 AM 3:30) に自動実行
     - cron: '30 18 * * *'
   workflow_dispatch: # 手動実行用ボタンも有効にしておく
+  repository_dispatch:
+    types: [manual_trigger]
 
 jobs:
   update-data:
