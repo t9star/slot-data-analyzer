@@ -101,7 +101,11 @@ def generate_dashboard():
     weekday_trends = analyzer.analyze_weekday_machine_trends()
     setting_habits = analyzer.analyze_setting_change_habits()
     recommendations = analyzer.analyze_recommended_machines()
-    current_params = analyzer.load_prediction_parameters()
+    
+    # 複数モデルパラメータと精度検証データの取得
+    params_default = analyzer.load_prediction_parameters("default")
+    params_raise = analyzer.load_prediction_parameters("raise")
+    params_trend = analyzer.load_prediction_parameters("trend")
     accuracy_report = analyzer.get_prediction_accuracy_report(limit=5)
     
     # 順位ソートなどを調整
@@ -118,15 +122,22 @@ def generate_dashboard():
     if day_stats is None:
         day_stats = pd.DataFrame()
         
-    # 4. 次回の期待台予測
-    # 最新の稼働日の翌日以降の最初の特定日をターゲットとする
+    # 4. 次回の期待台予測 (3モデル分個別に取得)
     predict_date = get_next_special_date(end_date)
     predict_day_dt = datetime.strptime(predict_date, "%Y-%m-%d")
     predict_day_type = "0のつく日" if predict_day_dt.day % 10 == 0 else "5のつく日"
     
-    predictions = analyzer.predict_next_hot_slots(predict_date)
-    if predictions is None:
-        predictions = pd.DataFrame()
+    predictions_default = analyzer.predict_next_hot_slots(predict_date, model_type="default")
+    if predictions_default is None:
+        predictions_default = pd.DataFrame()
+        
+    predictions_raise = analyzer.predict_next_hot_slots(predict_date, model_type="raise")
+    if predictions_raise is None:
+        predictions_raise = pd.DataFrame()
+        
+    predictions_trend = analyzer.predict_next_hot_slots(predict_date, model_type="trend")
+    if predictions_trend is None:
+        predictions_trend = pd.DataFrame()
         
     # 最近の出玉傾向および高設定濃厚台の集計結果を取得
     recent_trends = analyzer.get_recent_trends()
@@ -148,14 +159,21 @@ def generate_dashboard():
         digit_stats=digit_stats,
         predict_date=predict_date,
         predict_day_type=predict_day_type,
-        predictions=predictions,
+        
+        # 3つの予測結果とパラメータ
+        predictions_default=predictions_default,
+        predictions_raise=predictions_raise,
+        predictions_trend=predictions_trend,
+        params_default=params_default,
+        params_raise=params_raise,
+        params_trend=params_trend,
+        
         recent_trends=recent_trends,
         calendar_data=calendar_data,
         detected_blocks=detected_blocks,
         weekday_trends=weekday_trends,
         setting_habits=setting_habits,
         recommendations=recommendations,
-        current_params=current_params,
         accuracy_report=accuracy_report
     )
     

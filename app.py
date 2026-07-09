@@ -186,12 +186,13 @@ def update_status():
 @app.route('/api/predict', methods=['GET'])
 def predict():
     date_str = request.args.get('date')
+    model_type = request.args.get('model_type', 'default')
     if not date_str:
         return jsonify({"error": "Date is required"}), 400
     try:
         # 日付フォーマットのチェック
         datetime.strptime(date_str, "%Y-%m-%d")
-        predictions = analyzer.predict_next_hot_slots(date_str)
+        predictions = analyzer.predict_next_hot_slots(date_str, model_type=model_type)
         if predictions is None or predictions.empty:
             return jsonify([])
         return jsonify(predictions.to_dict(orient='records'))

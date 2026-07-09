@@ -128,17 +128,38 @@ def analyze_last_digits(target_day_type=None):
     
     return summary
 
-def load_prediction_parameters():
+def load_prediction_parameters(model_type="default"):
     """
-    DBの model_parameters テーブルから予測重み設定を読み込む
+    DBの model_parameters テーブルから指定モデル（default / raise / trend）の予測重み設定を読み込む
     """
-    default_params = {
-        'weight_slot_avg': 0.4,
-        'weight_machine_avg': 0.3,
-        'bonus_matching_digit': 250.0,
-        'bonus_zoro_digit': 80.0,
-        'bonus_raise_target': 100.0
+    fallbacks = {
+        'default': {
+            'weight_slot_avg': 0.4,
+            'weight_machine_avg': 0.3,
+            'bonus_matching_digit': 250.0,
+            'bonus_zoro_digit': 80.0,
+            'bonus_raise_target': 100.0
+        },
+        'raise': {
+            'weight_slot_avg': 0.3,
+            'weight_machine_avg': 0.2,
+            'bonus_matching_digit': 80.0,
+            'bonus_zoro_digit': 40.0,
+            'bonus_raise_target': 300.0
+        },
+        'trend': {
+            'weight_slot_avg': 0.2,
+            'weight_machine_avg': 0.2,
+            'bonus_matching_digit': 450.0,
+            'bonus_zoro_digit': 150.0,
+            'bonus_raise_target': 50.0
+        }
     }
+    
+    if model_type not in fallbacks:
+        model_type = 'default'
+        
+    params = fallbacks[model_type].copy()
     
     conn = get_connection()
     try:
@@ -146,21 +167,25 @@ def load_prediction_parameters():
         cursor.execute("SELECT key, value FROM model_parameters")
         rows = cursor.fetchall()
         for k, v in rows:
-            if k in default_params:
-                default_params[k] = float(v)
+            if k.startswith(f"{model_type}_"):
+                key_name = k[len(model_type)+1:]
+                if key_name in params:
+                    params[key_name] = float(v)
+            elif model_type == 'default' and k in params:
+                params[k] = float(v)
     except Exception:
         pass
     finally:
         conn.close()
         
-    return default_params
+    return params
 
-def predict_next_hot_slots(target_date_str, params=None):
+def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     """
-    特定の日付をターゲットにして、期待値の高い台（台番号）を予測スコアリングする
+    特定の日付をターゲットにして、期待値の高い台（台番号）を予測スコアリングする (モデルタイプ: default / raise / trend)
     """
     if params is None:
-        params = load_prediction_parameters()
+        params = load_prediction_parameters(model_type)
         
     target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
     day = target_date.day
@@ -237,6 +262,22 @@ def predict_next_hot_slots(target_date_str, params=None):
         last_day_query = "SELECT slot_number, diff as last_diff, games as last_games FROM slot_details WHERE date = ?"
         last_day_df = pd.read_sql_query(last_day_query, conn, params=(last_date,))
         
+    # 4. 直近3日間の累計差枚数（複数日凹み上げ狙い判定用）
+    recent_dates_query = "SELECT date FROM daily_summary WHERE date < ? ORDER BY date DESC LIMIT 3"
+    cursor.execute(recent_dates_query, (target_date_str,))
+    recent_dates = [row[0] for row in cursor.fetchall()]
+    
+    sum_diff_3d_df = pd.DataFrame()
+    if recent_dates:
+        placeholders = ','.join('?' for _ in recent_dates)
+        sum_diff_query = f"""
+        SELECT slot_number, SUM(diff) as diff_3d 
+        FROM slot_details 
+        WHERE date IN ({placeholders})
+        GROUP BY slot_number
+        """
+        sum_diff_3d_df = pd.read_sql_query(sum_diff_query, conn, params=recent_dates)
+        
     conn.close()
     
     if slots_df.empty:
@@ -250,12 +291,18 @@ def predict_next_hot_slots(target_date_str, params=None):
         df['last_diff'] = 0
         df['last_games'] = -1
         
+    if not sum_diff_3d_df.empty:
+        df = pd.merge(df, sum_diff_3d_df, on='slot_number', how='left')
+    else:
+        df['diff_3d'] = 0
+        
     # 欠損値補完
     df['avg_diff'] = df['avg_diff'].fillna(0)
     df['win_rate'] = df['win_rate'].fillna(0)
     df['machine_avg_diff'] = df['machine_avg_diff'].fillna(0)
     df['last_diff'] = df['last_diff'].fillna(0)
     df['last_games'] = df['last_games'].fillna(-1)
+    df['diff_3d'] = df['diff_3d'].fillna(0)
     
     # 末尾判定
     df['last_digit'] = df['slot_number'] % 10
@@ -273,8 +320,10 @@ def predict_next_hot_slots(target_date_str, params=None):
     df.loc[(df['last_two'] % 11 == 0) & (df['last_two'] != 0), 'score'] += params['bonus_zoro_digit']
     
     # 上げ狙いボーナス（前日凹んでいて、過去平均が良い台）
-    # 前日 -1500枚以下で、過去平均がプラスの台にボーナス
+    # 条件A: 前日 -1500枚以下で、過去平均がプラスの台にボーナス
     df.loc[(df['last_diff'] < -1500) & (df['avg_diff'] > 100), 'score'] += params['bonus_raise_target']
+    # 条件B: 3日間の累計差枚が -2500枚以下で、過去平均がプラス（>50）の台に追加ボーナス
+    df.loc[(df['diff_3d'] < -2500) & (df['avg_diff'] > 50), 'score'] += params['bonus_raise_target']
     
     # スコア順にソートしてトップ20を返す
     df['score'] = df['score'].round(1)
@@ -685,16 +734,16 @@ def analyze_recommended_machines():
     conn.close()
     return results
 
-def eval_parameters(target_dates, params):
+def eval_parameters(target_dates, params, model_type="default"):
     """
-    指定されたパラメータで過去の予測シミュレーションを行い、のべ予測上位20台の「実際の平均差枚数」の平均値を返す
+    指定されたパラメータとモデルタイプで過去の予測シミュレーションを行い、のべ予測上位20台の「実際の平均差枚数」の平均値を返す
     """
     total_diff_sum = 0
     total_slots_count = 0
     
     conn = get_connection()
     for date_str in target_dates:
-        pred_df = predict_next_hot_slots(date_str, params)
+        pred_df = predict_next_hot_slots(date_str, params, model_type)
         if pred_df is None or pred_df.empty:
             continue
             
@@ -718,8 +767,8 @@ def eval_parameters(target_dates, params):
 
 def tune_prediction_parameters():
     """
-    過去の特定日データを使って予測シミュレーションを回し、
-    最も的中精度が高くなる予測重みパラメータを自動探索して保存する
+    過去の特定日データを使って、3つの予測モデル（default / raise / trend）それぞれ個別に
+    最も的中精度が高くなる予測重みパラメータを自動探索（グリッドサーチ）して保存する
     """
     conn = get_connection()
     cursor = conn.cursor()
@@ -734,59 +783,84 @@ def tune_prediction_parameters():
     if len(target_dates) < 2:
         return {"status": "error", "message": "学習に必要な過去の特定日データが不足しています（最低2回分必要）。"}
         
-    slot_weights = [0.2, 0.5]
-    machine_weights = [0.2, 0.5]
-    matching_bonuses = [150.0, 300.0]
-    zoro_bonuses = [30.0, 90.0]
-    raise_bonuses = [30.0, 120.0]
-    
-    best_score = -999999
-    best_params = None
-    
-    current_params = load_prediction_parameters()
-    before_avg_diff = eval_parameters(target_dates, current_params)
-    
-    for w_slot in slot_weights:
-        for w_mach in machine_weights:
-            for b_match in matching_bonuses:
-                for b_zoro in zoro_bonuses:
-                    for b_raise in raise_bonuses:
-                        candidate = {
-                            'weight_slot_avg': w_slot,
-                            'weight_machine_avg': w_mach,
-                            'bonus_matching_digit': b_match,
-                            'bonus_zoro_digit': b_zoro,
-                            'bonus_raise_target': b_raise
-                        }
-                        score = eval_parameters(target_dates, candidate)
-                        if score > best_score:
-                            best_score = score
-                            best_params = candidate
-                            
-    if best_params:
-        conn = get_connection()
-        cursor = conn.cursor()
-        for k, v in best_params.items():
-            cursor.execute("INSERT OR REPLACE INTO model_parameters (key, value) VALUES (?, ?)", (k, v))
-        conn.commit()
-        conn.close()
-        
-        after_avg_diff = best_score
-        improvement = after_avg_diff - before_avg_diff
-        
-        return {
-            "status": "success",
-            "before_avg_diff": int(round(before_avg_diff)),
-            "after_avg_diff": int(round(after_avg_diff)),
-            "improvement": int(round(improvement)),
-            "updated_params": best_params
+    # 各モデルのパラメータ探索候補（グリッド）定義
+    model_grids = {
+        'default': {
+            'slot_weights': [0.2, 0.4],
+            'machine_weights': [0.2, 0.4],
+            'matching_bonuses': [150.0, 300.0],
+            'zoro_bonuses': [50.0, 100.0],
+            'raise_bonuses': [50.0, 120.0]
+        },
+        'raise': {
+            'slot_weights': [0.1, 0.3],
+            'machine_weights': [0.1, 0.3],
+            'matching_bonuses': [50.0, 100.0],
+            'zoro_bonuses': [30.0, 60.0],
+            'raise_bonuses': [250.0, 400.0]
+        },
+        'trend': {
+            'slot_weights': [0.1, 0.3],
+            'machine_weights': [0.1, 0.3],
+            'matching_bonuses': [400.0, 600.0],
+            'zoro_bonuses': [100.0, 200.0],
+            'raise_bonuses': [30.0, 80.0]
         }
-    else:
-        return {"status": "error", "message": "最適化計算中にエラーが発生しました。"}
+    }
+    
+    results = {}
+    
+    for m_type, grid in model_grids.items():
+        best_score = -999999
+        best_params = None
+        
+        current_params = load_prediction_parameters(m_type)
+        before_avg_diff = eval_parameters(target_dates, current_params, m_type)
+        
+        for w_slot in grid['slot_weights']:
+            for w_mach in grid['machine_weights']:
+                for b_match in grid['matching_bonuses']:
+                    for b_zoro in grid['zoro_bonuses']:
+                        for b_raise in grid['raise_bonuses']:
+                            candidate = {
+                                'weight_slot_avg': w_slot,
+                                'weight_machine_avg': w_mach,
+                                'bonus_matching_digit': b_match,
+                                'bonus_zoro_digit': b_zoro,
+                                'bonus_raise_target': b_raise
+                            }
+                            score = eval_parameters(target_dates, candidate, m_type)
+                            if score > best_score:
+                                best_score = score
+                                best_params = candidate
+                                
+        if best_params:
+            conn = get_connection()
+            cursor = conn.cursor()
+            for k, v in best_params.items():
+                db_key = f"{m_type}_{k}"
+                cursor.execute("INSERT OR REPLACE INTO model_parameters (key, value) VALUES (?, ?)", (db_key, v))
+            conn.commit()
+            conn.close()
+            
+            after_avg_diff = best_score
+            improvement = after_avg_diff - before_avg_diff
+            
+            results[m_type] = {
+                "before_avg_diff": int(round(before_avg_diff)),
+                "after_avg_diff": int(round(after_avg_diff)),
+                "improvement": int(round(improvement)),
+                "updated_params": best_params
+            }
+            
+    return {
+        "status": "success",
+        "results": results
+    }
 
 def get_prediction_accuracy_report(limit=5):
     """
-    過去の特定日における予測結果と、実際の出玉実績の答え合わせレポートを生成する
+    過去の特定日における3つの予測モデル（default / raise / trend）それぞれの答え合わせ成績レポートを生成する
     """
     conn = get_connection()
     cursor = conn.cursor()
@@ -802,36 +876,44 @@ def get_prediction_accuracy_report(limit=5):
         return []
         
     report = []
-    params = load_prediction_parameters()
+    model_types = ['default', 'raise', 'trend']
+    
+    # あらかじめ全モデルの現在のパラメータをロードしておく
+    model_params = {m: load_prediction_parameters(m) for m in model_types}
     
     conn = get_connection()
     for date_str in target_dates:
-        pred_df = predict_next_hot_slots(date_str, params)
-        if pred_df is None or pred_df.empty:
-            continue
-            
-        slot_list = pred_df['slot_number'].tolist()
-        placeholders = ','.join('?' for _ in slot_list)
+        day_results = {"date": date_str}
         
-        query = f"SELECT diff, winning FROM slot_details WHERE date = ? AND slot_number IN ({placeholders})"
-        cursor = conn.cursor()
-        cursor.execute(query, [date_str] + slot_list)
-        rows = cursor.fetchall()
-        
-        diffs = [r[0] for r in rows if r[0] is not None]
-        wins = [r[1] for r in rows if r[1] is not None]
-        
-        if diffs:
-            avg_diff = sum(diffs) / len(diffs)
-            win_rate = (sum(wins) / len(wins) * 100) if wins else 0.0
+        for m_type in model_types:
+            pred_df = predict_next_hot_slots(date_str, model_params[m_type], m_type)
+            if pred_df is None or pred_df.empty:
+                day_results[m_type] = {"avg_diff": 0, "win_rate": 0.0}
+                continue
+                
+            slot_list = pred_df['slot_number'].tolist()
+            placeholders = ','.join('?' for _ in slot_list)
             
-            report.append({
-                "date": date_str,
-                "predicted_slots_count": len(diffs),
-                "avg_diff": int(round(avg_diff)),
-                "win_rate": round(win_rate, 1)
-            })
+            query = f"SELECT diff, winning FROM slot_details WHERE date = ? AND slot_number IN ({placeholders})"
+            cursor = conn.cursor()
+            cursor.execute(query, [date_str] + slot_list)
+            rows = cursor.fetchall()
             
+            diffs = [r[0] for r in rows if r[0] is not None]
+            wins = [r[1] for r in rows if r[1] is not None]
+            
+            if diffs:
+                avg_diff = sum(diffs) / len(diffs)
+                win_rate = (sum(wins) / len(wins) * 100) if wins else 0.0
+                day_results[m_type] = {
+                    "avg_diff": int(round(avg_diff)),
+                    "win_rate": round(win_rate, 1)
+                }
+            else:
+                day_results[m_type] = {"avg_diff": 0, "win_rate": 0.0}
+                
+        report.append(day_results)
+        
     conn.close()
     return report
 

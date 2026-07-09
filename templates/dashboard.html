@@ -539,12 +539,14 @@
                 <div>
                     <div class="card-title" style="margin-bottom: 5px;">狙い台予測 (AIスコアリング)</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        現在の学習パラメータ: 
-                        台平均: <span style="color:#fff; font-weight:600;">{{ current_params.weight_slot_avg }}</span> | 
-                        機種平均: <span style="color:#fff; font-weight:600;">{{ current_params.weight_machine_avg }}</span> | 
-                        末尾: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_matching_digit }}</span> | 
-                        ゾロ目: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_zoro_digit }}</span> | 
-                        上げ: <span style="color:#fff; font-weight:600;">+{{ current_params.bonus_raise_target }}</span>
+                        <span style="font-weight: bold; color: var(--primary-color);">学習パラメータ (選択中):</span>
+                        <span id="params-display-area">
+                            台平均: <span style="color:#fff; font-weight:600;">{{ params_default.weight_slot_avg }}</span> | 
+                            機種平均: <span style="color:#fff; font-weight:600;">{{ params_default.weight_machine_avg }}</span> | 
+                            末尾: <span style="color:#fff; font-weight:600;">+{{ params_default.bonus_matching_digit }}</span> | 
+                            ゾロ目: <span style="color:#fff; font-weight:600;">+{{ params_default.bonus_zoro_digit }}</span> | 
+                            上げ: <span style="color:#fff; font-weight:600;">+{{ params_default.bonus_raise_target }}</span>
+                        </span>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
@@ -558,25 +560,72 @@
                 </div>
             </div>
             
+            <!-- 予測モデル切り替えタブ -->
+            <div class="model-tabs-container" style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <button onclick="switchPredictionModel('default')" id="tab-model-default" class="model-tab active" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid var(--primary-color); background: rgba(0, 186, 242, 0.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                    ⚖️ バランス型
+                </button>
+                <button onclick="switchPredictionModel('raise')" id="tab-model-raise" class="model-tab" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                    🔄 上げ狙い特化
+                </button>
+                <button onclick="switchPredictionModel('trend')" id="tab-model-trend" class="model-tab" style="flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease;">
+                    🎯 末尾・ゾロ目特化
+                </button>
+            </div>
+            
             <!-- AI学習＆精度検証レポート表示エリア -->
             <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
                 <div style="flex: 2; min-width: 300px;">
-                    <div style="font-weight: bold; color: var(--accent-color); margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
-                        <span>🎯 予測モデルの答え合わせレポート (直近特定日)</span>
+                    <div style="font-weight: bold; color: var(--accent-color); margin-bottom: 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                        <span>👑 予測モデルの答え合わせ比較レポート (直近特定日)</span>
                     </div>
                     {% if accuracy_report %}
-                        <div style="display: flex; gap: 10px; overflow-x: auto;">
-                            {% for r in accuracy_report %}
-                            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; flex: 1; min-width: 140px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">{{ r.date }}</div>
-                                <div style="font-size: 1rem; font-weight: 800; color: {% if r.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
-                                    {{ "{:+,}".format(r.avg_diff) }}枚
-                                </div>
-                                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
-                                    予測上位勝率: {{ r.win_rate }}%
-                                </div>
-                            </div>
-                            {% endfor %}
+                        <div class="table-container" style="max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                            <table style="font-size: 0.85rem; width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>日付</th>
+                                        <th style="color: var(--primary-color);">バランス型 ⚖️</th>
+                                        <th style="color: var(--success-color);">上げ狙い型 🔄</th>
+                                        <th style="color: var(--accent-color);">末尾特化型 🎯</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for r in accuracy_report %}
+                                    <tr>
+                                        <td style="font-weight: 600;">{{ r.date }}</td>
+                                        
+                                        <!-- バランス型 -->
+                                        <td style="text-align: center; background: rgba(0, 186, 242, 0.02); {% if r.default.avg_diff >= r.raise.avg_diff and r.default.avg_diff >= r.trend.avg_diff %}border: 1px solid var(--primary-color); font-weight: bold;{% endif %}">
+                                            <span style="color: {% if r.default.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                                {{ "{:+,}".format(r.default.avg_diff) }}枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: {{ r.default.win_rate }}%</div>
+                                            {% if r.default.avg_diff >= r.raise.avg_diff and r.default.avg_diff >= r.trend.avg_diff %}<span style="color: var(--primary-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
+                                        </td>
+                                        
+                                        <!-- 上げ狙い型 -->
+                                        <td style="text-align: center; background: rgba(46, 204, 113, 0.02); {% if r.raise.avg_diff >= r.default.avg_diff and r.raise.avg_diff >= r.trend.avg_diff %}border: 1px solid var(--success-color); font-weight: bold;{% endif %}">
+                                            <span style="color: {% if r.raise.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                                {{ "{:+,}".format(r.raise.avg_diff) }}枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: {{ r.raise.win_rate }}%</div>
+                                            {% if r.raise.avg_diff >= r.default.avg_diff and r.raise.avg_diff >= r.trend.avg_diff %}<span style="color: var(--success-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
+                                        </td>
+                                        
+                                        <!-- 末尾特化型 -->
+                                        <td style="text-align: center; background: rgba(255, 51, 102, 0.02); {% if r.trend.avg_diff >= r.default.avg_diff and r.trend.avg_diff >= r.raise.avg_diff %}border: 1px solid var(--accent-color); font-weight: bold;{% endif %}">
+                                            <span style="color: {% if r.trend.avg_diff >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                                {{ "{:+,}".format(r.trend.avg_diff) }}枚
+                                            </span>
+                                            <div style="font-size: 0.7rem; color: var(--text-muted);">勝率: {{ r.trend.win_rate }}%</div>
+                                            {% if r.trend.avg_diff >= r.default.avg_diff and r.trend.avg_diff >= r.raise.avg_diff %}<span style="color: var(--accent-color); font-size: 0.75rem;">👑 最優秀</span>{% endif %}
+                                        </td>
+                                        
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     {% else %}
                         <p style="font-size: 0.8rem; color: var(--text-muted);">
@@ -585,9 +634,9 @@
                     {% endif %}
                 </div>
                 <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid rgba(255,255,255,0.05); padding-left: 20px;">
-                    <div style="font-size: 0.85rem; font-weight: bold; color: #fff; margin-bottom: 5px;">AI学習チューニングとは？</div>
+                    <div style="font-size: 0.85rem; font-weight: bold; color: #fff; margin-bottom: 5px;">予測の複数モデル比較とは？</div>
                     <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
-                        過去の特定日における「予測上位20台」が「実際にいくら出たか」をシミュレーションし、最も的中率が高くなるように重みを調整します。データが溜まるほどホールの癖に適合します。
+                        狙い台のアプローチが異なる3つのAIモデル（バランス・上げ狙い特化・末尾ゾロ目特化）が、過去の特定日にどれだけ的中していたかを比較します。直近で最も「👑最優秀」が多いモデルが今最も有効な戦略となります。
                     </p>
                 </div>
             </div>
@@ -609,8 +658,8 @@
                             <th>総合期待スコア</th>
                         </tr>
                     </thead>
-                    <tbody id="predictions-tbody">
-                        {% for index, row in predictions.iterrows() %}
+                    <tbody id="predictions-tbody-default" class="predictions-tbody-group">
+                        {% for index, row in predictions_default.iterrows() %}
                         <tr>
                             <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#{{ loop.index }}</td>
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
@@ -631,6 +680,62 @@
                             </td>
                             <td>
                                 <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
+                                    {{ row['score'] }} pts
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tbody id="predictions-tbody-raise" class="predictions-tbody-group" style="display: none;">
+                        {% for index, row in predictions_raise.iterrows() %}
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: var(--success-color);">#{{ loop.index }}</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
+                                {{ row['slot_number'] }}
+                            </td>
+                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
+                            <td>{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                    {{ "{:+,}".format(row['avg_diff']) }}
+                                </span>
+                            </td>
+                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td>
+                                <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
+                                    {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: var(--success-color);">
+                                    {{ row['score'] }} pts
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tbody id="predictions-tbody-trend" class="predictions-tbody-group" style="display: none;">
+                        {% for index, row in predictions_trend.iterrows() %}
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: var(--accent-color);">#{{ loop.index }}</td>
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
+                                {{ row['slot_number'] }}
+                            </td>
+                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
+                            <td>{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
+                                    {{ "{:+,}".format(row['avg_diff']) }}
+                                </span>
+                            </td>
+                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td>
+                                <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
+                                    {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); color: var(--accent-color);">
                                     {{ row['score'] }} pts
                                 </span>
                             </td>
@@ -1174,97 +1279,111 @@
                 });
         }
 
-        // 4. 動的狙い台予測ロード API
-        function loadPredictions() {
+        // 4. 動的狙い台予測ロード & 複数モデル切り替えロジック
+        let currentModel = 'default';
+        const initialPredictDate = "{{ predict_date }}";
+        
+        const modelParams = {
+            default: {
+                w_slot: {{ params_default.weight_slot_avg }},
+                w_mach: {{ params_default.weight_machine_avg }},
+                b_match: {{ params_default.bonus_matching_digit }},
+                b_zoro: {{ params_default.bonus_zoro_digit }},
+                b_raise: {{ params_default.bonus_raise_target }}
+            },
+            raise: {
+                w_slot: {{ params_raise.weight_slot_avg }},
+                w_mach: {{ params_raise.weight_machine_avg }},
+                b_match: {{ params_raise.bonus_matching_digit }},
+                b_zoro: {{ params_raise.bonus_zoro_digit }},
+                b_raise: {{ params_raise.bonus_raise_target }}
+            },
+            trend: {
+                w_slot: {{ params_trend.weight_slot_avg }},
+                w_mach: {{ params_trend.weight_machine_avg }},
+                b_match: {{ params_trend.bonus_matching_digit }},
+                b_zoro: {{ params_trend.bonus_zoro_digit }},
+                b_raise: {{ params_trend.bonus_raise_target }}
+            }
+        };
+
+        function switchPredictionModel(modelType) {
+            currentModel = modelType;
+            
+            // タブのアクティブスタイル制御
+            const tabs = document.querySelectorAll('.model-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                tab.style.background = 'rgba(255,255,255,0.01)';
+                tab.style.borderColor = 'rgba(255,255,255,0.05)';
+                tab.style.color = 'var(--text-muted)';
+            });
+            
+            const activeTab = document.getElementById(`tab-model-${modelType}`);
+            activeTab.classList.add('active');
+            
+            let activeColor = 'var(--primary-color)';
+            let activeBg = 'rgba(0, 186, 242, 0.1)';
+            if (modelType === 'raise') {
+                activeColor = 'var(--success-color)';
+                activeBg = 'rgba(46, 204, 113, 0.1)';
+            } else if (modelType === 'trend') {
+                activeColor = 'var(--accent-color)';
+                activeBg = 'rgba(255, 51, 102, 0.1)';
+            }
+            activeTab.style.background = activeBg;
+            activeTab.style.borderColor = activeColor;
+            activeTab.style.color = '#fff';
+            
+            // パラメータ表示部分の差し替え
+            const p = modelParams[modelType];
+            const paramsHtml = `
+                台平均: <span style="color:#fff; font-weight:600;">${p.w_slot}</span> | 
+                機種平均: <span style="color:#fff; font-weight:600;">${p.w_mach}</span> | 
+                末尾: <span style="color:#fff; font-weight:600;">+${p.b_match}</span> | 
+                ゾロ目: <span style="color:#fff; font-weight:600;">+${p.b_zoro}</span> | 
+                上げ: <span style="color:#fff; font-weight:600;">+${p.b_raise}</span>
+            `;
+            document.getElementById('params-display-area').innerHTML = paramsHtml;
+            
+            // 日付変更されていなければ、単純に非同期テーブル表示切り替え
             const datePicker = document.getElementById('predict-date-picker');
-            const tbody = document.getElementById('predictions-tbody');
-            const date = datePicker.value;
-            
-            if (!date) return;
-            
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--accent-color); padding: 30px;">予測データを再計算中...</td></tr>';
-            
-            fetch(`/api/predict?date=${date}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">エラー: ${data.error}</td></tr>`;
-                        return;
-                    }
-                    
-                    if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付のデータが不足しているか、予測できません。</td></tr>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    data.forEach((row, idx) => {
-                        const diffVal = row.avg_diff;
-                        const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-                        const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString();
-                        
-                        const mDiffVal = row.machine_avg_diff;
-                        const mDiffText = (mDiffVal >= 0 ? '+' : '') + mDiffVal.toLocaleString();
-                        
-                        const lastDiffVal = row.last_diff;
-                        const lastDiffColor = lastDiffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-                        const lastDiffText = lastDiffVal !== 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
-                        
-                        html += `
-                            <tr>
-                                <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#${idx + 1}</td>
-                                <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; background: rgba(255,255,255,0.02); text-align: center; border-radius: 8px;">
-                                    ${row.slot_number}
-                                </td>
-                                <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
-                                <td>${row.recorded_days}日分</td>
-                                <td>
-                                    <span style="color: ${diffColor};">
-                                        ${diffText}
-                                    </span>
-                                </td>
-                                <td>${mDiffText}</td>
-                                <td>
-                                    <span style="color: ${lastDiffColor}; font-size: 0.9rem;">
-                                        ${lastDiffText}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
-                                        ${row.score.toFixed(1)} pts
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    tbody.innerHTML = html;
-                })
-                .catch(err => {
-                    console.error('Failed to load predictions', err);
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">データの取得に失敗しました。</td></tr>';
-                });
+            if (datePicker.value === initialPredictDate) {
+                const tbodies = document.querySelectorAll('.predictions-tbody-group');
+                tbodies.forEach(tb => tb.style.display = 'none');
+                
+                const targetTbody = document.getElementById(`predictions-tbody-${modelType}`);
+                targetTbody.style.display = 'table-row-group';
+            } else {
+                loadPredictions();
+            }
         }
 
-        // 4. 動的狙い台予測ロード API
         function loadPredictions() {
             const datePicker = document.getElementById('predict-date-picker');
-            const tbody = document.getElementById('predictions-tbody');
             const date = datePicker.value;
             
             if (!date) return;
             
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--accent-color); padding: 30px;">予測データを再計算中...</td></tr>';
+            const tbodies = document.querySelectorAll('.predictions-tbody-group');
+            tbodies.forEach(tb => {
+                tb.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--accent-color); padding: 30px;">予測データを再計算中...</td></tr>';
+                tb.style.display = 'none';
+            });
             
-            fetch(`/api/predict?date=${date}`)
+            const activeTbody = document.getElementById(`predictions-tbody-${currentModel}`);
+            activeTbody.style.display = 'table-row-group';
+            
+            fetch(`/api/predict?date=${date}&model_type=${currentModel}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">エラー: ${data.error}</td></tr>`;
+                        activeTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">エラー: ${data.error}</td></tr>`;
                         return;
                     }
                     
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付のデータが不足しているか、予測できません。</td></tr>';
+                        activeTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">この日付のデータが不足しているか、予測できません。</td></tr>';
                         return;
                     }
                     
@@ -1281,9 +1400,16 @@
                         const lastDiffColor = lastDiffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
                         const lastDiffText = row.last_games >= 0 ? ((lastDiffVal >= 0 ? '+' : '') + lastDiffVal.toLocaleString()) : '-';
                         
+                        let badgeStyle = '';
+                        if (currentModel === 'raise') {
+                            badgeStyle = 'background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: var(--success-color);';
+                        } else if (currentModel === 'trend') {
+                            badgeStyle = 'background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); color: var(--accent-color);';
+                        }
+                        
                         html += `
                             <tr>
-                                <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#${idx + 1}</td>
+                                <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : 'var(--accent-color)')};">#${idx + 1}</td>
                                 <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
                                     ${row.slot_number}
                                 </td>
@@ -1301,18 +1427,24 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px;">
+                                    <span class="badge badge-score" style="font-size: 1rem; padding: 6px 12px; ${badgeStyle}">
                                         ${row.score.toFixed(1)} pts
                                     </span>
                                 </td>
                             </tr>
                         `;
                     });
-                    tbody.innerHTML = html;
+                    activeTbody.innerHTML = html;
+                    
+                    tbodies.forEach(tb => {
+                        if (tb.id !== `predictions-tbody-${currentModel}`) {
+                            tb.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">日付が変更されました。このモデルの予測を表示するにはタブを選択してください。</td></tr>`;
+                        }
+                    });
                 })
                 .catch(err => {
                     console.error('Failed to load predictions', err);
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">データの取得に失敗しました。</td></tr>';
+                    activeTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger-color); padding: 30px;">データの取得に失敗しました。</td></tr>';
                 });
         }
 
@@ -1626,12 +1758,21 @@
                     if (res.error) {
                         alert('AI学習に失敗しました: ' + res.error);
                     } else {
-                        const msg = `AI学習が完了しました！\n\n` +
-                                    `【過去予測シミュレーションの的中精度】\n` +
-                                    `最適化前: 平均 ${res.before_avg_diff.toLocaleString()} 枚/台\n` +
-                                    `最適化後: 平均 ${res.after_avg_diff.toLocaleString()} 枚/台\n` +
-                                    `精度改善: +${res.improvement.toLocaleString()} 枚/台 📈\n\n` +
-                                    `更新された重みパラメータでダッシュボードを再構築します。`;
+                        let msg = `🎉 AIの自動学習（パラメータ最適化）が完了しました！\n\n`;
+                        msg += `【過去特定日シミュレーションでの予測精度改善成果】\n\n`;
+                        
+                        const r = res.results;
+                        if (r.default) {
+                            msg += `⚖️ バランス型: \n  改善前: ${r.default.before_avg_diff.toLocaleString()}枚/台 ➔ 改善後: ${r.default.after_avg_diff.toLocaleString()}枚/台 (+${r.default.improvement}枚/台 📈)\n\n`;
+                        }
+                        if (r.raise) {
+                            msg += `🔄 上げ狙い特化型: \n  改善前: ${r.raise.before_avg_diff.toLocaleString()}枚/台 ➔ 改善後: ${r.raise.after_avg_diff.toLocaleString()}枚/台 (+${r.raise.improvement}枚/台 📈)\n\n`;
+                        }
+                        if (r.trend) {
+                            msg += `🎯 末尾・ゾロ目特化型: \n  改善前: ${r.trend.before_avg_diff.toLocaleString()}枚/台 ➔ 改善後: ${r.trend.after_avg_diff.toLocaleString()}枚/台 (+${r.trend.improvement}枚/台 📈)\n\n`;
+                        }
+                        
+                        msg += `最新のパラメータでダッシュボードを再構築します。`;
                         alert(msg);
                         window.location.reload();
                     }

@@ -70,11 +70,24 @@ def init_db():
     
     # デフォルトの初期重みを投入 (存在しない場合のみ)
     default_params = [
-        ('weight_slot_avg', 0.4),
-        ('weight_machine_avg', 0.3),
-        ('bonus_matching_digit', 250.0),
-        ('bonus_zoro_digit', 80.0),
-        ('bonus_raise_target', 100.0)
+        # デフォルト（バランス型）
+        ('default_weight_slot_avg', 0.4),
+        ('default_weight_machine_avg', 0.3),
+        ('default_bonus_matching_digit', 250.0),
+        ('default_bonus_zoro_digit', 80.0),
+        ('default_bonus_raise_target', 100.0),
+        # 上げ狙い特化型
+        ('raise_weight_slot_avg', 0.3),
+        ('raise_weight_machine_avg', 0.2),
+        ('raise_bonus_matching_digit', 80.0),
+        ('raise_bonus_zoro_digit', 40.0),
+        ('raise_bonus_raise_target', 300.0),
+        # 末尾特化型
+        ('trend_weight_slot_avg', 0.2),
+        ('trend_weight_machine_avg', 0.2),
+        ('trend_bonus_matching_digit', 450.0),
+        ('trend_bonus_zoro_digit', 150.0),
+        ('trend_bonus_raise_target', 50.0)
     ]
     for key, val in default_params:
         cursor.execute("INSERT OR IGNORE INTO model_parameters (key, value) VALUES (?, ?)", (key, val))
