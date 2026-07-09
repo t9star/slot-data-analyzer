@@ -532,6 +532,108 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* ボトムナビゲーションバー */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 65px;
+            background: rgba(11, 15, 25, 0.95);
+            border-top: 1px solid var(--card-border);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 999;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+            padding-bottom: env(safe-area-inset-bottom); /* iOS セーフエリア対応 */
+        }
+        
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 100%;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .bottom-nav-item.active {
+            color: var(--accent-color);
+        }
+        
+        .bottom-nav-icon {
+            font-size: 1.3rem;
+            margin-bottom: 2px;
+            transition: transform 0.2s;
+        }
+        
+        .bottom-nav-item.active .bottom-nav-icon {
+            transform: scale(1.15);
+        }
+        
+        .bottom-nav-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        /* スマホ向けメディアクエリ */
+        @media (max-width: 768px) {
+            .bottom-nav {
+                display: flex;
+            }
+            body {
+                padding-bottom: 85px !important;
+            }
+            /* スマホのときは各セクションをデフォルト非表示 */
+            .mobile-section {
+                display: none;
+            }
+            .mobile-section.active-section {
+                display: block !important;
+                animation: fadeInSection 0.3s ease;
+            }
+            /* テーブルカラムのレスポンシブ非表示 */
+            .col-recorded-days, .col-machine-avg-diff {
+                display: none !important;
+            }
+            .mobile-subtext {
+                display: block !important;
+            }
+            /* 余白の最小化 */
+            .container {
+                padding: 10px !important;
+            }
+            .card {
+                padding: 15px !important;
+                margin-top: 15px !important;
+            }
+            h1 {
+                font-size: 1.5rem !important;
+            }
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+            .kpi-card {
+                padding: 10px !important;
+            }
+            .kpi-value {
+                font-size: 1.2rem !important;
+            }
+        }
+        
+        @keyframes fadeInSection {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -556,34 +658,37 @@
         </header>
 
         <!-- 店舗実績カレンダー -->
-        <div class="card calendar-card">
-            <div class="calendar-header">
-                <div class="card-title" style="margin-bottom: 0;">📅 店舗営業実績カレンダー (直近90日)</div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀ 前月</button>
-                    <span id="calendar-month-label" style="font-weight: bold; font-size: 1.1rem; min-width: 100px; text-align: center;">-</span>
-                    <button class="calendar-nav-btn" onclick="changeMonth(1)">次月 ▶</button>
+        <div id="section-calendar" class="mobile-section">
+            <div class="card calendar-card">
+                <div class="calendar-header">
+                    <div class="card-title" style="margin-bottom: 0;">📅 店舗営業実績カレンダー (直近90日)</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀ 前月</button>
+                        <span id="calendar-month-label" style="font-weight: bold; font-size: 1.1rem; min-width: 100px; text-align: center;">-</span>
+                        <button class="calendar-nav-btn" onclick="changeMonth(1)">次月 ▶</button>
+                    </div>
                 </div>
-            </div>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
-                各日付の平均差枚数と勝率を可視化（緑＝好調 🌟、赤＝回収・不調 ⚠️）。枠線付きは特定日（緑枠＝0のつく日、赤枠＝5のつく日）です。マスをクリックすると、その日の予測詳細に飛べます。
-            </p>
-            <div class="calendar-grid" id="calendar-grid-header">
-                <div class="calendar-day-label">日</div>
-                <div class="calendar-day-label">月</div>
-                <div class="calendar-day-label">火</div>
-                <div class="calendar-day-label">水</div>
-                <div class="calendar-day-label">木</div>
-                <div class="calendar-day-label">金</div>
-                <div class="calendar-day-label">土</div>
-            </div>
-            <div class="calendar-grid" id="calendar-days-container">
-                <!-- JSで動的生成 -->
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
+                    各日付の平均差枚数と勝率を可視化（緑＝好調 🌟、赤＝回収・不調 ⚠️）。枠線付きは特定日（緑枠＝0のつく日、赤枠＝5のつく日）です。マスをクリックすると、その日の予測詳細に飛べます。
+                </p>
+                <div class="calendar-grid" id="calendar-grid-header">
+                    <div class="calendar-day-label">日</div>
+                    <div class="calendar-day-label">月</div>
+                    <div class="calendar-day-label">火</div>
+                    <div class="calendar-day-label">水</div>
+                    <div class="calendar-day-label">木</div>
+                    <div class="calendar-day-label">金</div>
+                    <div class="calendar-day-label">土</div>
+                </div>
+                <div class="calendar-grid" id="calendar-days-container">
+                    <!-- JSで動的生成 -->
+                </div>
             </div>
         </div>
 
         <!-- 期待台予測スコアリング -->
-        <div class="card" style="margin-top: 30px;">
+        <div id="section-predictions" class="mobile-section">
+            <div class="card" style="margin-top: 30px;">
             <div class="predict-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; margin-bottom: 15px;">
                 <div>
                     <div class="card-title" style="margin-bottom: 5px;">狙い台予測 (AIスコアリング)</div>
@@ -700,9 +805,9 @@
                             <th>予測順位</th>
                             <th>台番号</th>
                             <th>機種名</th>
-                            <th>過去取得データ数</th>
+                            <th class="col-recorded-days">過去取得データ数</th>
                             <th>台の過去平均差枚</th>
-                            <th>機種の過去平均差枚</th>
+                            <th class="col-machine-avg-diff">機種の過去平均差枚</th>
                             <th>前日最終差枚</th>
                             <th>総合期待スコア</th>
                         </tr>
@@ -714,14 +819,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
-                            <td>{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    {{ row['recorded_days'] }}日 | 機種平均: {{ "{:+,}".format(row['machine_avg_diff']) }}枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">{{ row['recorded_days'] }}日分</td>
                             <td>
                                 <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
                                     {{ "{:+,}".format(row['avg_diff']) }}
                                 </span>
                             </td>
-                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td class="col-machine-avg-diff">{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
                             <td>
                                 <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
                                     {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
@@ -742,14 +852,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
-                            <td>{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    {{ row['recorded_days'] }}日 | 機種平均: {{ "{:+,}".format(row['machine_avg_diff']) }}枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">{{ row['recorded_days'] }}日分</td>
                             <td>
                                 <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
                                     {{ "{:+,}".format(row['avg_diff']) }}
                                 </span>
                             </td>
-                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td class="col-machine-avg-diff">{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
                             <td>
                                 <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
                                     {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
@@ -770,14 +885,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</td>
-                            <td>{{ row['recorded_days'] }}日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">{{ row['machine_name'] }}</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    {{ row['recorded_days'] }}日 | 機種平均: {{ "{:+,}".format(row['machine_avg_diff']) }}枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">{{ row['recorded_days'] }}日分</td>
                             <td>
                                 <span style="color: {% if row['avg_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %};">
                                     {{ "{:+,}".format(row['avg_diff']) }}
                                 </span>
                             </td>
-                            <td>{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
+                            <td class="col-machine-avg-diff">{{ "{:+,}".format(row['machine_avg_diff']) }}</td>
                             <td>
                                 <span style="color: {% if row['last_diff'] >= 0 %}var(--success-color){% else %}var(--danger-color){% endif %}; font-size: 0.9rem;">
                                     {{ "{:+,}".format(row['last_diff']) if row['last_games'] >= 0 else '-' }}
@@ -816,7 +936,8 @@
         </div>
 
         <!-- 直近の出玉傾向 ＆ 設定推測サマリー -->
-        <div class="card trends-card" style="margin-top: 30px;">
+        <div id="section-habits" class="mobile-section">
+            <div class="card trends-card" style="margin-top: 30px;">
             <div class="card-title" style="color: var(--accent-color); font-size: 1.3rem;">📊 直近7営業日の出玉傾向 ＆ 設定投入推測</div>
             <div class="trends-grid">
                 <!-- 左カラム: テキスト要約と設定分析 -->
@@ -1058,10 +1179,9 @@
             </div>
         </div>
 
-
-
         <!-- オススメ機種検証レポート -->
-        <div class="card" style="margin-top: 30px;">
+        <div id="section-validation" class="mobile-section">
+            <div class="card" style="margin-top: 30px;">
             <div class="card-title">🔍 ホール公約・オススメ機種の実績検証</div>
             <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">
                 店舗ホームページやLINE等で「今週のオススメ」「新台入替」などと謳われた機種を登録し、その指定期間内に本当に設定が使われていたか（実際の平均差枚数・勝率・高設定台数の実績）を検証します。
@@ -1167,6 +1287,26 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- スマホ専用ボトムナビゲーションバー -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-item active" id="tab-btn-predictions" onclick="switchMobileTab('predictions')">
+            <span class="bottom-nav-icon">🎯</span>
+            <span class="bottom-nav-label">期待予測</span>
+        </div>
+        <div class="bottom-nav-item" id="tab-btn-calendar" onclick="switchMobileTab('calendar')">
+            <span class="bottom-nav-icon">📅</span>
+            <span class="bottom-nav-label">カレンダー</span>
+        </div>
+        <div class="bottom-nav-item" id="tab-btn-habits" onclick="switchMobileTab('habits')">
+            <span class="bottom-nav-icon">📊</span>
+            <span class="bottom-nav-label">癖分析</span>
+        </div>
+        <div class="bottom-nav-item" id="tab-btn-validation" onclick="switchMobileTab('validation')">
+            <span class="bottom-nav-icon">🔍</span>
+            <span class="bottom-nav-label">実績検証</span>
         </div>
     </div>
 
@@ -1449,14 +1589,19 @@
                         <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
                             ${row.slot_number}
                         </td>
-                        <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
-                        <td>${row.recorded_days}日分</td>
+                        <td>
+                            <div style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</div>
+                            <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                ${row.recorded_days}日 | 機種平均: ${mDiffText}枚
+                            </div>
+                        </td>
+                        <td class="col-recorded-days">${row.recorded_days}日分</td>
                         <td>
                             <span style="color: ${diffColor};">
                                 ${diffText}
                             </span>
                         </td>
-                        <td>${mDiffText}</td>
+                        <td class="col-machine-avg-diff">${mDiffText}</td>
                         <td>
                             <span style="color: ${lastDiffColor}; font-size: 0.9rem;">
                                 ${lastDiffText}
@@ -2044,10 +2189,60 @@
             }
         }
 
+        // スマホ用モバイルタブ表示切り替え
+        let activeMobileTab = 'predictions';
+
+        function switchMobileTab(tabId) {
+            const isMobile = window.innerWidth <= 768;
+            if (!isMobile) return;
+            
+            activeMobileTab = tabId;
+            
+            // 1. ボトムナビのボタンのアクティブクラス切り替え
+            document.querySelectorAll('.bottom-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            // 2. セクションの表示非表示切り替え
+            document.querySelectorAll('.mobile-section').forEach(sec => {
+                sec.classList.remove('active-section');
+            });
+            const activeSec = document.getElementById(`section-${tabId}`);
+            if (activeSec) activeSec.classList.add('active-section');
+            
+            // Plotlyのレイアウトが崩れないように自動リサイズをトリガーする
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 100);
+        }
+
+        // スマホ・PC環境の自動初期化とリサイズ監視
+        function initMobileLayout() {
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                // スマホ時は現在のタブのみ表示
+                switchMobileTab(activeMobileTab);
+            } else {
+                // PC時は全セクションを表示状態に
+                document.querySelectorAll('.mobile-section').forEach(sec => {
+                    sec.classList.remove('active-section'); // スマホ用クラスは外す
+                });
+            }
+        }
+
+        window.addEventListener('resize', initMobileLayout);
+
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initEnvironmentCheck);
+            document.addEventListener('DOMContentLoaded', () => {
+                initEnvironmentCheck();
+                initMobileLayout();
+            });
         } else {
             initEnvironmentCheck();
+            initMobileLayout();
         }
     </script>
 

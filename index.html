@@ -532,6 +532,108 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* ボトムナビゲーションバー */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 65px;
+            background: rgba(11, 15, 25, 0.95);
+            border-top: 1px solid var(--card-border);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 999;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+            padding-bottom: env(safe-area-inset-bottom); /* iOS セーフエリア対応 */
+        }
+        
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 100%;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .bottom-nav-item.active {
+            color: var(--accent-color);
+        }
+        
+        .bottom-nav-icon {
+            font-size: 1.3rem;
+            margin-bottom: 2px;
+            transition: transform 0.2s;
+        }
+        
+        .bottom-nav-item.active .bottom-nav-icon {
+            transform: scale(1.15);
+        }
+        
+        .bottom-nav-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        /* スマホ向けメディアクエリ */
+        @media (max-width: 768px) {
+            .bottom-nav {
+                display: flex;
+            }
+            body {
+                padding-bottom: 85px !important;
+            }
+            /* スマホのときは各セクションをデフォルト非表示 */
+            .mobile-section {
+                display: none;
+            }
+            .mobile-section.active-section {
+                display: block !important;
+                animation: fadeInSection 0.3s ease;
+            }
+            /* テーブルカラムのレスポンシブ非表示 */
+            .col-recorded-days, .col-machine-avg-diff {
+                display: none !important;
+            }
+            .mobile-subtext {
+                display: block !important;
+            }
+            /* 余白の最小化 */
+            .container {
+                padding: 10px !important;
+            }
+            .card {
+                padding: 15px !important;
+                margin-top: 15px !important;
+            }
+            h1 {
+                font-size: 1.5rem !important;
+            }
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+            .kpi-card {
+                padding: 10px !important;
+            }
+            .kpi-value {
+                font-size: 1.2rem !important;
+            }
+        }
+        
+        @keyframes fadeInSection {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -550,40 +652,43 @@
                     <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
                     <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
                 </div>
-                <p>ダッシュボード生成日時: 2026-07-09 19:39:10</p>
+                <p>ダッシュボード生成日時: 2026-07-09 19:41:49</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-07-08</p>
             </div>
         </header>
 
         <!-- 店舗実績カレンダー -->
-        <div class="card calendar-card">
-            <div class="calendar-header">
-                <div class="card-title" style="margin-bottom: 0;">📅 店舗営業実績カレンダー (直近90日)</div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀ 前月</button>
-                    <span id="calendar-month-label" style="font-weight: bold; font-size: 1.1rem; min-width: 100px; text-align: center;">-</span>
-                    <button class="calendar-nav-btn" onclick="changeMonth(1)">次月 ▶</button>
+        <div id="section-calendar" class="mobile-section">
+            <div class="card calendar-card">
+                <div class="calendar-header">
+                    <div class="card-title" style="margin-bottom: 0;">📅 店舗営業実績カレンダー (直近90日)</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀ 前月</button>
+                        <span id="calendar-month-label" style="font-weight: bold; font-size: 1.1rem; min-width: 100px; text-align: center;">-</span>
+                        <button class="calendar-nav-btn" onclick="changeMonth(1)">次月 ▶</button>
+                    </div>
                 </div>
-            </div>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
-                各日付の平均差枚数と勝率を可視化（緑＝好調 🌟、赤＝回収・不調 ⚠️）。枠線付きは特定日（緑枠＝0のつく日、赤枠＝5のつく日）です。マスをクリックすると、その日の予測詳細に飛べます。
-            </p>
-            <div class="calendar-grid" id="calendar-grid-header">
-                <div class="calendar-day-label">日</div>
-                <div class="calendar-day-label">月</div>
-                <div class="calendar-day-label">火</div>
-                <div class="calendar-day-label">水</div>
-                <div class="calendar-day-label">木</div>
-                <div class="calendar-day-label">金</div>
-                <div class="calendar-day-label">土</div>
-            </div>
-            <div class="calendar-grid" id="calendar-days-container">
-                <!-- JSで動的生成 -->
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
+                    各日付の平均差枚数と勝率を可視化（緑＝好調 🌟、赤＝回収・不調 ⚠️）。枠線付きは特定日（緑枠＝0のつく日、赤枠＝5のつく日）です。マスをクリックすると、その日の予測詳細に飛べます。
+                </p>
+                <div class="calendar-grid" id="calendar-grid-header">
+                    <div class="calendar-day-label">日</div>
+                    <div class="calendar-day-label">月</div>
+                    <div class="calendar-day-label">火</div>
+                    <div class="calendar-day-label">水</div>
+                    <div class="calendar-day-label">木</div>
+                    <div class="calendar-day-label">金</div>
+                    <div class="calendar-day-label">土</div>
+                </div>
+                <div class="calendar-grid" id="calendar-days-container">
+                    <!-- JSで動的生成 -->
+                </div>
             </div>
         </div>
 
         <!-- 期待台予測スコアリング -->
-        <div class="card" style="margin-top: 30px;">
+        <div id="section-predictions" class="mobile-section">
+            <div class="card" style="margin-top: 30px;">
             <div class="predict-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; margin-bottom: 15px;">
                 <div>
                     <div class="card-title" style="margin-bottom: 5px;">狙い台予測 (AIスコアリング)</div>
@@ -824,9 +929,9 @@
                             <th>予測順位</th>
                             <th>台番号</th>
                             <th>機種名</th>
-                            <th>過去取得データ数</th>
+                            <th class="col-recorded-days">過去取得データ数</th>
                             <th>台の過去平均差枚</th>
-                            <th>機種の過去平均差枚</th>
+                            <th class="col-machine-avg-diff">機種の過去平均差枚</th>
                             <th>前日最終差枚</th>
                             <th>総合期待スコア</th>
                         </tr>
@@ -838,14 +943,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(37)" title="クリックで直近10日の詳細データを表示">
                                 37
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L防振り</td>
-                            <td>3日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L防振り</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: +3,211枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +3,211
                                 </span>
                             </td>
-                            <td>+3,211</td>
+                            <td class="col-machine-avg-diff">+3,211</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -589
@@ -863,14 +973,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1865)" title="クリックで直近10日の詳細データを表示">
                                 1865
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,696
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +471
@@ -888,14 +1003,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(77)" title="クリックで直近10日の詳細データを表示">
                                 77
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lとある科学の超電磁砲2</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lとある科学の超電磁砲2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,425枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,425
                                 </span>
                             </td>
-                            <td>+1,425</td>
+                            <td class="col-machine-avg-diff">+1,425</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,078
@@ -913,14 +1033,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1878)" title="クリックで直近10日の詳細データを表示">
                                 1878
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +19枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,342
                                 </span>
                             </td>
-                            <td>+19</td>
+                            <td class="col-machine-avg-diff">+19</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,719
@@ -938,14 +1063,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(177)" title="クリックで直近10日の詳細データを表示">
                                 177
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +987
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,708
@@ -963,14 +1093,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2066)" title="クリックで直近10日の詳細データを表示">
                                 2066
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LB SHAKE BONUS TRIGGER</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LB SHAKE BONUS TRIGGER</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,004枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,004
                                 </span>
                             </td>
-                            <td>+1,004</td>
+                            <td class="col-machine-avg-diff">+1,004</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -381
@@ -988,14 +1123,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1860)" title="クリックで直近10日の詳細データを表示">
                                 1860
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,034
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +64
@@ -1013,14 +1153,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(161)" title="クリックで直近10日の詳細データを表示">
                                 161
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LﾊﾞｲｵﾊｻﾞｰﾄﾞRE：3</td>
-                            <td>3日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LﾊﾞｲｵﾊｻﾞｰﾄﾞRE：3</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: -124枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,203
                                 </span>
                             </td>
-                            <td>-124</td>
+                            <td class="col-machine-avg-diff">-124</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +5,622
@@ -1038,14 +1183,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1833)" title="クリックで直近10日の詳細データを表示">
                                 1833
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lからくりｻｰｶｽ2</td>
-                            <td>3日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lからくりｻｰｶｽ2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: -435枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,309
                                 </span>
                             </td>
-                            <td>-435</td>
+                            <td class="col-machine-avg-diff">-435</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -718
@@ -1063,14 +1213,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(76)" title="クリックで直近10日の詳細データを表示">
                                 76
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L新鬼武者3</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L新鬼武者3</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +33枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,186
                                 </span>
                             </td>
-                            <td>+33</td>
+                            <td class="col-machine-avg-diff">+33</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -3,073
@@ -1088,14 +1243,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1678)" title="クリックで直近10日の詳細データを表示">
                                 1678
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L北斗 転生の章2</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L北斗 転生の章2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +20枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,721
                                 </span>
                             </td>
-                            <td>+20</td>
+                            <td class="col-machine-avg-diff">+20</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +479
@@ -1113,14 +1273,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1862)" title="クリックで直近10日の詳細データを表示">
                                 1862
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +446
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,345
@@ -1138,14 +1303,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(200)" title="クリックで直近10日の詳細データを表示">
                                 200
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾏｷﾞｱﾚｺｰﾄﾞ</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾏｷﾞｱﾚｺｰﾄﾞ</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +79枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +903
                                 </span>
                             </td>
-                            <td>+79</td>
+                            <td class="col-machine-avg-diff">+79</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,322
@@ -1163,14 +1333,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1771)" title="クリックで直近10日の詳細データを表示">
                                 1771
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +974
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,068
@@ -1188,14 +1363,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2081)" title="クリックで直近10日の詳細データを表示">
                                 2081
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L BIRDIE WING</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L BIRDIE WING</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +783枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +778
                                 </span>
                             </td>
-                            <td>+783</td>
+                            <td class="col-machine-avg-diff">+783</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +0
@@ -1213,14 +1393,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1866)" title="クリックで直近10日の詳細データを表示">
                                 1866
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +431
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -287
@@ -1238,14 +1423,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2055)" title="クリックで直近10日の詳細データを表示">
                                 2055
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LB不二子</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LB不二子</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +651枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +651
                                 </span>
                             </td>
-                            <td>+651</td>
+                            <td class="col-machine-avg-diff">+651</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +88
@@ -1263,14 +1453,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1858)" title="クリックで直近10日の詳細データを表示">
                                 1858
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +734
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,234
@@ -1288,14 +1483,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1751)" title="クリックで直近10日の詳細データを表示">
                                 1751
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,073
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +675
@@ -1313,14 +1513,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(167)" title="クリックで直近10日の詳細データを表示">
                                 167
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">5.6Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">5.6Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +545枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +545
                                 </span>
                             </td>
-                            <td>+545</td>
+                            <td class="col-machine-avg-diff">+545</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,632
@@ -1341,14 +1546,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(37)" title="クリックで直近10日の詳細データを表示">
                                 37
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L防振り</td>
-                            <td>3日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L防振り</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: +3,211枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +3,211
                                 </span>
                             </td>
-                            <td>+3,211</td>
+                            <td class="col-machine-avg-diff">+3,211</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -589
@@ -1366,14 +1576,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(177)" title="クリックで直近10日の詳細データを表示">
                                 177
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +987
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,708
@@ -1391,14 +1606,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1862)" title="クリックで直近10日の詳細データを表示">
                                 1862
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +446
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,345
@@ -1416,14 +1636,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(77)" title="クリックで直近10日の詳細データを表示">
                                 77
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lとある科学の超電磁砲2</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lとある科学の超電磁砲2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,425枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,425
                                 </span>
                             </td>
-                            <td>+1,425</td>
+                            <td class="col-machine-avg-diff">+1,425</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,078
@@ -1441,14 +1666,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(76)" title="クリックで直近10日の詳細データを表示">
                                 76
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L新鬼武者3</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L新鬼武者3</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +33枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,186
                                 </span>
                             </td>
-                            <td>+33</td>
+                            <td class="col-machine-avg-diff">+33</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -3,073
@@ -1466,14 +1696,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1673)" title="クリックで直近10日の詳細データを表示">
                                 1673
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">沖ﾄﾞｷ!ｺﾞｰｼﾞｬｽ-30</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">沖ﾄﾞｷ!ｺﾞｰｼﾞｬｽ-30</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: -249枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +192
                                 </span>
                             </td>
-                            <td>-249</td>
+                            <td class="col-machine-avg-diff">-249</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -3,550
@@ -1491,14 +1726,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1866)" title="クリックで直近10日の詳細データを表示">
                                 1866
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +431
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -287
@@ -1516,14 +1756,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1878)" title="クリックで直近10日の詳細データを表示">
                                 1878
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +19枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,342
                                 </span>
                             </td>
-                            <td>+19</td>
+                            <td class="col-machine-avg-diff">+19</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,719
@@ -1541,14 +1786,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(167)" title="クリックで直近10日の詳細データを表示">
                                 167
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">5.6Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">5.6Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +545枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +545
                                 </span>
                             </td>
-                            <td>+545</td>
+                            <td class="col-machine-avg-diff">+545</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,632
@@ -1566,14 +1816,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1771)" title="クリックで直近10日の詳細データを表示">
                                 1771
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +974
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,068
@@ -1591,14 +1846,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(200)" title="クリックで直近10日の詳細データを表示">
                                 200
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾏｷﾞｱﾚｺｰﾄﾞ</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾏｷﾞｱﾚｺｰﾄﾞ</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +79枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +903
                                 </span>
                             </td>
-                            <td>+79</td>
+                            <td class="col-machine-avg-diff">+79</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,322
@@ -1616,14 +1876,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1755)" title="クリックで直近10日の詳細データを表示">
                                 1755
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +160
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -519
@@ -1641,14 +1906,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(173)" title="クリックで直近10日の詳細データを表示">
                                 173
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾌﾟﾘｽﾞﾑﾅﾅ</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾌﾟﾘｽﾞﾑﾅﾅ</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +332枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +332
                                 </span>
                             </td>
-                            <td>+332</td>
+                            <td class="col-machine-avg-diff">+332</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,905
@@ -1666,14 +1936,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1765)" title="クリックで直近10日の詳細データを表示">
                                 1765
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +325
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -204
@@ -1691,14 +1966,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1738)" title="クリックで直近10日の詳細データを表示">
                                 1738
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +234
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -147
@@ -1716,14 +1996,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1757)" title="クリックで直近10日の詳細データを表示">
                                 1757
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +220
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,159
@@ -1741,14 +2026,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1776)" title="クリックで直近10日の詳細データを表示">
                                 1776
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +95
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,361
@@ -1766,14 +2056,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1865)" title="クリックで直近10日の詳細データを表示">
                                 1865
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,696
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +471
@@ -1791,14 +2086,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2066)" title="クリックで直近10日の詳細データを表示">
                                 2066
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LB SHAKE BONUS TRIGGER</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LB SHAKE BONUS TRIGGER</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,004枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,004
                                 </span>
                             </td>
-                            <td>+1,004</td>
+                            <td class="col-machine-avg-diff">+1,004</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -381
@@ -1816,14 +2116,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1872)" title="クリックで直近10日の詳細データを表示">
                                 1872
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +19枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +169
                                 </span>
                             </td>
-                            <td>+19</td>
+                            <td class="col-machine-avg-diff">+19</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +13
@@ -1844,14 +2149,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(37)" title="クリックで直近10日の詳細データを表示">
                                 37
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L防振り</td>
-                            <td>3日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L防振り</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: +3,211枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +3,211
                                 </span>
                             </td>
-                            <td>+3,211</td>
+                            <td class="col-machine-avg-diff">+3,211</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -589
@@ -1869,14 +2179,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(77)" title="クリックで直近10日の詳細データを表示">
                                 77
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lとある科学の超電磁砲2</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lとある科学の超電磁砲2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,425枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,425
                                 </span>
                             </td>
-                            <td>+1,425</td>
+                            <td class="col-machine-avg-diff">+1,425</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,078
@@ -1894,14 +2209,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1865)" title="クリックで直近10日の詳細データを表示">
                                 1865
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,696
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +471
@@ -1919,14 +2239,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1860)" title="クリックで直近10日の詳細データを表示">
                                 1860
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,034
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +64
@@ -1944,14 +2269,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(177)" title="クリックで直近10日の詳細データを表示">
                                 177
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +987
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,708
@@ -1969,14 +2299,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2066)" title="クリックで直近10日の詳細データを表示">
                                 2066
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LB SHAKE BONUS TRIGGER</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LB SHAKE BONUS TRIGGER</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +1,004枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,004
                                 </span>
                             </td>
-                            <td>+1,004</td>
+                            <td class="col-machine-avg-diff">+1,004</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -381
@@ -1994,14 +2329,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1878)" title="クリックで直近10日の詳細データを表示">
                                 1878
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +19枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,342
                                 </span>
                             </td>
-                            <td>+19</td>
+                            <td class="col-machine-avg-diff">+19</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,719
@@ -2019,14 +2359,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(200)" title="クリックで直近10日の詳細データを表示">
                                 200
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾏｷﾞｱﾚｺｰﾄﾞ</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾏｷﾞｱﾚｺｰﾄﾞ</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +79枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +903
                                 </span>
                             </td>
-                            <td>+79</td>
+                            <td class="col-machine-avg-diff">+79</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -2,322
@@ -2044,14 +2389,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1833)" title="クリックで直近10日の詳細データを表示">
                                 1833
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lからくりｻｰｶｽ2</td>
-                            <td>3日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lからくりｻｰｶｽ2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: -435枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,309
                                 </span>
                             </td>
-                            <td>-435</td>
+                            <td class="col-machine-avg-diff">-435</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -718
@@ -2069,14 +2419,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(50)" title="クリックで直近10日の詳細データを表示">
                                 50
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L頭文字D 2nd</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L頭文字D 2nd</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +473枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +473
                                 </span>
                             </td>
-                            <td>+473</td>
+                            <td class="col-machine-avg-diff">+473</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +358
@@ -2094,14 +2449,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1750)" title="クリックで直近10日の詳細データを表示">
                                 1750
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L東京喰種</td>
-                            <td>30日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L東京喰種</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    30日 | 機種平均: +329枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">30日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +521
                                 </span>
                             </td>
-                            <td>+329</td>
+                            <td class="col-machine-avg-diff">+329</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +3,346
@@ -2119,14 +2479,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2100)" title="クリックで直近10日の詳細データを表示">
                                 2100
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L秘宝伝</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L秘宝伝</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +414枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +414
                                 </span>
                             </td>
-                            <td>+414</td>
+                            <td class="col-machine-avg-diff">+414</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +3,093
@@ -2144,14 +2509,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1870)" title="クリックで直近10日の詳細データを表示">
                                 1870
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +19枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +797
                                 </span>
                             </td>
-                            <td>+19</td>
+                            <td class="col-machine-avg-diff">+19</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -1,378
@@ -2169,14 +2539,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(161)" title="クリックで直近10日の詳細データを表示">
                                 161
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LﾊﾞｲｵﾊｻﾞｰﾄﾞRE：3</td>
-                            <td>3日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LﾊﾞｲｵﾊｻﾞｰﾄﾞRE：3</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    3日 | 機種平均: -124枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">3日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +2,203
                                 </span>
                             </td>
-                            <td>-124</td>
+                            <td class="col-machine-avg-diff">-124</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +5,622
@@ -2194,14 +2569,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1866)" title="クリックで直近10日の詳細データを表示">
                                 1866
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +688枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +431
                                 </span>
                             </td>
-                            <td>+688</td>
+                            <td class="col-machine-avg-diff">+688</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -287
@@ -2219,14 +2599,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2055)" title="クリックで直近10日の詳細データを表示">
                                 2055
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LB不二子</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LB不二子</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +651枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +651
                                 </span>
                             </td>
-                            <td>+651</td>
+                            <td class="col-machine-avg-diff">+651</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +88
@@ -2244,14 +2629,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(2060)" title="クリックで直近10日の詳細データを表示">
                                 2060
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">LB異世界かるてっと</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">LB異世界かるてっと</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +294枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +294
                                 </span>
                             </td>
-                            <td>+294</td>
+                            <td class="col-machine-avg-diff">+294</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -748
@@ -2269,14 +2659,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1680)" title="クリックで直近10日の詳細データを表示">
                                 1680
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L北斗 転生の章2</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L北斗 転生の章2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +20枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +421
                                 </span>
                             </td>
-                            <td>+20</td>
+                            <td class="col-machine-avg-diff">+20</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +148
@@ -2294,14 +2689,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(76)" title="クリックで直近10日の詳細データを表示">
                                 76
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L新鬼武者3</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L新鬼武者3</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +33枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,186
                                 </span>
                             </td>
-                            <td>+33</td>
+                            <td class="col-machine-avg-diff">+33</td>
                             <td>
                                 <span style="color: var(--danger-color); font-size: 0.9rem;">
                                     -3,073
@@ -2319,14 +2719,19 @@
                             <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(1678)" title="クリックで直近10日の詳細データを表示">
                                 1678
                             </td>
-                            <td style="font-weight: 600; color: var(--accent-color);">L北斗 転生の章2</td>
-                            <td>8日分</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-color);">L北斗 転生の章2</div>
+                                <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    8日 | 機種平均: +20枚
+                                </div>
+                            </td>
+                            <td class="col-recorded-days">8日分</td>
                             <td>
                                 <span style="color: var(--success-color);">
                                     +1,721
                                 </span>
                             </td>
-                            <td>+20</td>
+                            <td class="col-machine-avg-diff">+20</td>
                             <td>
                                 <span style="color: var(--success-color); font-size: 0.9rem;">
                                     +479
@@ -2365,7 +2770,8 @@
         </div>
 
         <!-- 直近の出玉傾向 ＆ 設定推測サマリー -->
-        <div class="card trends-card" style="margin-top: 30px;">
+        <div id="section-habits" class="mobile-section">
+            <div class="card trends-card" style="margin-top: 30px;">
             <div class="card-title" style="color: var(--accent-color); font-size: 1.3rem;">📊 直近7営業日の出玉傾向 ＆ 設定投入推測</div>
             <div class="trends-grid">
                 <!-- 左カラム: テキスト要約と設定分析 -->
@@ -3219,7 +3625,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-07</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2065 - 2067</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / Lうみねこのなく頃に2 / LB SHAKE BONUS TRIGGER</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / LB SHAKE BONUS TRIGGER / Lうみねこのなく頃に2</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,809枚
@@ -3283,10 +3689,9 @@
             </div>
         </div>
 
-
-
         <!-- オススメ機種検証レポート -->
-        <div class="card" style="margin-top: 30px;">
+        <div id="section-validation" class="mobile-section">
+            <div class="card" style="margin-top: 30px;">
             <div class="card-title">🔍 ホール公約・オススメ機種の実績検証</div>
             <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">
                 店舗ホームページやLINE等で「今週のオススメ」「新台入替」などと謳われた機種を登録し、その指定期間内に本当に設定が使われていたか（実際の平均差枚数・勝率・高設定台数の実績）を検証します。
@@ -3679,6 +4084,26 @@
         </div>
     </div>
 
+    <!-- スマホ専用ボトムナビゲーションバー -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-item active" id="tab-btn-predictions" onclick="switchMobileTab('predictions')">
+            <span class="bottom-nav-icon">🎯</span>
+            <span class="bottom-nav-label">期待予測</span>
+        </div>
+        <div class="bottom-nav-item" id="tab-btn-calendar" onclick="switchMobileTab('calendar')">
+            <span class="bottom-nav-icon">📅</span>
+            <span class="bottom-nav-label">カレンダー</span>
+        </div>
+        <div class="bottom-nav-item" id="tab-btn-habits" onclick="switchMobileTab('habits')">
+            <span class="bottom-nav-icon">📊</span>
+            <span class="bottom-nav-label">癖分析</span>
+        </div>
+        <div class="bottom-nav-item" id="tab-btn-validation" onclick="switchMobileTab('validation')">
+            <span class="bottom-nav-icon">🔍</span>
+            <span class="bottom-nav-label">実績検証</span>
+        </div>
+    </div>
+
     <!-- グラフ用スクリプト -->
     <script>
         const darkThemeLayout = {
@@ -3958,14 +4383,19 @@
                         <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
                             ${row.slot_number}
                         </td>
-                        <td style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</td>
-                        <td>${row.recorded_days}日分</td>
+                        <td>
+                            <div style="font-weight: 600; color: var(--accent-color);">${row.machine_name}</div>
+                            <div class="mobile-subtext" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                ${row.recorded_days}日 | 機種平均: ${mDiffText}枚
+                            </div>
+                        </td>
+                        <td class="col-recorded-days">${row.recorded_days}日分</td>
                         <td>
                             <span style="color: ${diffColor};">
                                 ${diffText}
                             </span>
                         </td>
-                        <td>${mDiffText}</td>
+                        <td class="col-machine-avg-diff">${mDiffText}</td>
                         <td>
                             <span style="color: ${lastDiffColor}; font-size: 0.9rem;">
                                 ${lastDiffText}
@@ -4553,10 +4983,60 @@
             }
         }
 
+        // スマホ用モバイルタブ表示切り替え
+        let activeMobileTab = 'predictions';
+
+        function switchMobileTab(tabId) {
+            const isMobile = window.innerWidth <= 768;
+            if (!isMobile) return;
+            
+            activeMobileTab = tabId;
+            
+            // 1. ボトムナビのボタンのアクティブクラス切り替え
+            document.querySelectorAll('.bottom-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            // 2. セクションの表示非表示切り替え
+            document.querySelectorAll('.mobile-section').forEach(sec => {
+                sec.classList.remove('active-section');
+            });
+            const activeSec = document.getElementById(`section-${tabId}`);
+            if (activeSec) activeSec.classList.add('active-section');
+            
+            // Plotlyのレイアウトが崩れないように自動リサイズをトリガーする
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 100);
+        }
+
+        // スマホ・PC環境の自動初期化とリサイズ監視
+        function initMobileLayout() {
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                // スマホ時は現在のタブのみ表示
+                switchMobileTab(activeMobileTab);
+            } else {
+                // PC時は全セクションを表示状態に
+                document.querySelectorAll('.mobile-section').forEach(sec => {
+                    sec.classList.remove('active-section'); // スマホ用クラスは外す
+                });
+            }
+        }
+
+        window.addEventListener('resize', initMobileLayout);
+
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initEnvironmentCheck);
+            document.addEventListener('DOMContentLoaded', () => {
+                initEnvironmentCheck();
+                initMobileLayout();
+            });
         } else {
             initEnvironmentCheck();
+            initMobileLayout();
         }
     </script>
 
