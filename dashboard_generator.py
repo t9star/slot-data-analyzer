@@ -89,6 +89,10 @@ def generate_dashboard():
         })
     calendar_data.reverse() # 日付順（古い順）にする
     
+    # 2-2. ユニークな機種名リストの取得
+    cursor.execute("SELECT DISTINCT machine_name FROM slot_details ORDER BY machine_name")
+    machines = [r[0] for r in cursor.fetchall()]
+    
     conn.close()
     
     # 3. 各種分析データの取得 (from analyzer.py)
@@ -174,7 +178,8 @@ def generate_dashboard():
         weekday_trends=weekday_trends,
         setting_habits=setting_habits,
         recommendations=recommendations,
-        accuracy_report=accuracy_report
+        accuracy_report=accuracy_report,
+        machines=machines
     )
     
     # ファイルに書き出し

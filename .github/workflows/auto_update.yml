@@ -26,6 +26,26 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+    - name: Handle Custom Register Recommendation Dispatch
+      if: github.event.client_payload.action == 'register_recommendation'
+      run: |
+        python -c "
+        import sqlite3
+        conn = sqlite3.connect('slot_data.db')
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO recommended_machines (machine_name, start_date, end_date, label) VALUES (?, ?, ?, ?)',
+            (
+                \"${{ github.event.client_payload.machine }}\",
+                \"${{ github.event.client_payload.start }}\",
+                \"${{ github.event.client_payload.end }}\",
+                \"${{ github.event.client_payload.label }}\"
+            )
+        )
+        conn.commit()
+        conn.close()
+        "
+
     - name: Run Scraper (Fetch Last 8 Days of Goraggio Data)
       run: |
         # 通常営業日の直近8日分のデータを回収

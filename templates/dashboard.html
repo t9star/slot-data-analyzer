@@ -220,6 +220,9 @@
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 10px !important;
+            }
             .grid-2 {
                 grid-template-columns: 1fr;
             }
@@ -229,11 +232,24 @@
                 gap: 15px;
                 padding: 15px !important;
             }
+            h1 {
+                font-size: 1.5rem !important;
+            }
             .header-meta {
                 text-align: left;
             }
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+            }
+            .kpi-card {
+                padding: 15px 10px !important;
+            }
+            .kpi-value {
+                font-size: 1.4rem !important;
+            }
             .card {
-                padding: 18px 12px !important;
+                padding: 15px 10px !important;
                 border-radius: 12px !important;
             }
             th, td {
@@ -241,17 +257,50 @@
                 font-size: 0.8rem !important;
             }
             /* カレンダーのスマホ最適化 */
-            .calendar-day {
-                padding: 4px 1px !important;
-                min-height: 44px !important;
+            .calendar-grid {
+                gap: 4px !important;
             }
-            .calendar-day-num {
+            .calendar-day-label {
                 font-size: 0.75rem !important;
+                padding: 4px 0 !important;
             }
-            .calendar-day-info {
-                font-size: 0.55rem !important;
-                transform: scale(0.9);
+            .calendar-cell {
+                padding: 4px 2px !important;
+                min-height: 50px !important;
+                border-radius: 4px !important;
+            }
+            .calendar-cell .day-num {
+                font-size: 0.75rem !important;
+                padding-left: 2px !important;
+            }
+            .calendar-cell .day-num span {
+                display: none !important; /* 「特定日」という文字を非表示にして省スペース化 */
+            }
+            .calendar-cell .day-diff {
+                font-size: 0.65rem !important;
                 margin-top: 1px !important;
+            }
+            .calendar-cell .day-winrate {
+                font-size: 0.5rem !important;
+                transform: scale(0.85);
+                transform-origin: left bottom;
+                white-space: nowrap;
+                margin-top: 1px !important;
+                display: block;
+            }
+            /* 曜日別リストのスマホ調整 */
+            .weekday-grid {
+                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)) !important;
+                gap: 8px !important;
+            }
+            .weekday-card {
+                padding: 8px 5px !important;
+            }
+            .weekday-name {
+                font-size: 0.85rem !important;
+            }
+            .weekday-machine-item {
+                font-size: 0.7rem !important;
             }
             /* 期待予測タイトルのスマホ調整 */
             .predict-header {
@@ -1028,6 +1077,9 @@
                         <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">対象機種名</label>
                         <select id="rec-machine-select" style="width: 100%; padding: 10px; border-radius: 6px; background: #222; border: 1px solid rgba(255,255,255,0.1); color: #fff;">
                             <option value="">-- 機種名を選択 --</option>
+                            {% for machine in machines %}
+                            <option value="{{ machine }}">{{ machine }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div>
@@ -1638,35 +1690,8 @@
             initMachineSelect();
         });
 
-        // オススメ機種のセレクトボックス初期化
-        function initMachineSelect() {
-            if (window.location.protocol === 'file:') {
-                // file:// スキーム時は、ダミー防止として「機種名を選択」のままにするか無効化
-                const select = document.getElementById('rec-machine-select');
-                if (select) {
-                    select.disabled = true;
-                    const opt = document.createElement('option');
-                    opt.textContent = 'start.batから起動時のみ利用可能';
-                    select.appendChild(opt);
-                }
-                return;
-            }
-            
-            const select = document.getElementById('rec-machine-select');
-            if (!select) return;
-            
-            fetch('/api/machines')
-                .then(res => res.json())
-                .then(machines => {
-                    machines.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m;
-                        opt.textContent = m;
-                        select.appendChild(opt);
-                    });
-                })
-                .catch(err => console.error('Failed to load machines list', err));
-        }
+        // オススメ機種のセレクトボックス初期化 (Jinja2で静的に pre-render されるため何もしません)
+        function initMachineSelect() {}
 
         // オススメ機種の新規登録
         function registerRecommendation() {
@@ -1685,6 +1710,18 @@
             
             if (new Date(start) > new Date(end)) {
                 showRecError('開始日は終了日以前の日付を指定してください。');
+                return;
+            }
+            
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isLocal) {
+                triggerCloudWorkflow('おすすめ機種の登録と再検証', {
+                    action: 'register_recommendation',
+                    machine: machine,
+                    start: start,
+                    end: end,
+                    label: label
+                });
                 return;
             }
             
@@ -1744,7 +1781,7 @@
         }
 
         // クラウドの GitHub Actions ワークフローを実行する共通関数
-        function triggerCloudWorkflow(actionName) {
+        function triggerCloudWorkflow(actionName, payload = null) {
             let token = '';
             try {
                 token = localStorage.getItem('github_pat_token') || '';
@@ -1782,6 +1819,13 @@
             if (btnTune) { btnTune.disabled = true; btnTune.textContent = '⏳ クラウド起動中...'; }
             if (btnGoraggio) { btnGoraggio.disabled = true; btnGoraggio.textContent = '⏳ クラウド起動中...'; }
             
+            const reqBody = {
+                event_type: 'manual_trigger'
+            };
+            if (payload) {
+                reqBody.client_payload = payload;
+            }
+            
             fetch('https://api.github.com/repos/t9star/slot-data-analyzer/dispatches', {
                 method: 'POST',
                 headers: {
@@ -1789,9 +1833,7 @@
                     'Authorization': `token ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    event_type: 'manual_trigger'
-                })
+                body: JSON.stringify(reqBody)
             })
             .then(res => {
                 if (res.status === 204) {

@@ -220,6 +220,9 @@
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 10px !important;
+            }
             .grid-2 {
                 grid-template-columns: 1fr;
             }
@@ -229,11 +232,24 @@
                 gap: 15px;
                 padding: 15px !important;
             }
+            h1 {
+                font-size: 1.5rem !important;
+            }
             .header-meta {
                 text-align: left;
             }
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+            }
+            .kpi-card {
+                padding: 15px 10px !important;
+            }
+            .kpi-value {
+                font-size: 1.4rem !important;
+            }
             .card {
-                padding: 18px 12px !important;
+                padding: 15px 10px !important;
                 border-radius: 12px !important;
             }
             th, td {
@@ -241,17 +257,50 @@
                 font-size: 0.8rem !important;
             }
             /* カレンダーのスマホ最適化 */
-            .calendar-day {
-                padding: 4px 1px !important;
-                min-height: 44px !important;
+            .calendar-grid {
+                gap: 4px !important;
             }
-            .calendar-day-num {
+            .calendar-day-label {
                 font-size: 0.75rem !important;
+                padding: 4px 0 !important;
             }
-            .calendar-day-info {
-                font-size: 0.55rem !important;
-                transform: scale(0.9);
+            .calendar-cell {
+                padding: 4px 2px !important;
+                min-height: 50px !important;
+                border-radius: 4px !important;
+            }
+            .calendar-cell .day-num {
+                font-size: 0.75rem !important;
+                padding-left: 2px !important;
+            }
+            .calendar-cell .day-num span {
+                display: none !important; /* 「特定日」という文字を非表示にして省スペース化 */
+            }
+            .calendar-cell .day-diff {
+                font-size: 0.65rem !important;
                 margin-top: 1px !important;
+            }
+            .calendar-cell .day-winrate {
+                font-size: 0.5rem !important;
+                transform: scale(0.85);
+                transform-origin: left bottom;
+                white-space: nowrap;
+                margin-top: 1px !important;
+                display: block;
+            }
+            /* 曜日別リストのスマホ調整 */
+            .weekday-grid {
+                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)) !important;
+                gap: 8px !important;
+            }
+            .weekday-card {
+                padding: 8px 5px !important;
+            }
+            .weekday-name {
+                font-size: 0.85rem !important;
+            }
+            .weekday-machine-item {
+                font-size: 0.7rem !important;
             }
             /* 期待予測タイトルのスマホ調整 */
             .predict-header {
@@ -501,7 +550,7 @@
                     <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
                     <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
                 </div>
-                <p>ダッシュボード生成日時: 2026-07-09 19:28:42</p>
+                <p>ダッシュボード生成日時: 2026-07-09 19:35:25</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-07-08</p>
             </div>
         </header>
@@ -3170,7 +3219,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-07</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2065 - 2067</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LB SHAKE BONUS TRIGGER / LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / Lうみねこのなく頃に2</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">Lうみねこのなく頃に2 / LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / LB SHAKE BONUS TRIGGER</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,809枚
@@ -3253,6 +3302,305 @@
                         <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">対象機種名</label>
                         <select id="rec-machine-select" style="width: 100%; padding: 10px; border-radius: 6px; background: #222; border: 1px solid rgba(255,255,255,0.1); color: #fff;">
                             <option value="">-- 機種名を選択 --</option>
+                            
+                            <option value="5.6Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK">5.6Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK</option>
+                            
+                            <option value="A-SLOT+ ディスクアップ ULTRAREMIX">A-SLOT+ ディスクアップ ULTRAREMIX</option>
+                            
+                            <option value="A-SLOT+異世界かるてっとBT">A-SLOT+異世界かるてっとBT</option>
+                            
+                            <option value="L BIRDIE WING">L BIRDIE WING</option>
+                            
+                            <option value="L ULTRAMAN最終決戦">L ULTRAMAN最終決戦</option>
+                            
+                            <option value="LB SHAKE BONUS TRIGGER">LB SHAKE BONUS TRIGGER</option>
+                            
+                            <option value="LB不二子">LB不二子</option>
+                            
+                            <option value="LB異世界かるてっと">LB異世界かるてっと</option>
+                            
+                            <option value="LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ</option>
+                            
+                            <option value="LBｸﾚｱの秘宝伝">LBｸﾚｱの秘宝伝</option>
+                            
+                            <option value="LBｹﾛｯﾄ5">LBｹﾛｯﾄ5</option>
+                            
+                            <option value="LBｻﾝﾀﾞｰV">LBｻﾝﾀﾞｰV</option>
+                            
+                            <option value="LBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV">LBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV</option>
+                            
+                            <option value="Lうみねこのなく頃に2">Lうみねこのなく頃に2</option>
+                            
+                            <option value="Lかぐや様は告らせたい">Lかぐや様は告らせたい</option>
+                            
+                            <option value="Lからくりｻｰｶｽ2">Lからくりｻｰｶｽ2</option>
+                            
+                            <option value="Lとある科学の超電磁砲2">Lとある科学の超電磁砲2</option>
+                            
+                            <option value="Lアクダマドライブ">Lアクダマドライブ</option>
+                            
+                            <option value="Lアズールレーン THE ANIMATION">Lアズールレーン THE ANIMATION</option>
+                            
+                            <option value="Lスマスロ北斗の拳">Lスマスロ北斗の拳</option>
+                            
+                            <option value="Lタクトオーパス デスティニー">Lタクトオーパス デスティニー</option>
+                            
+                            <option value="Lダーリン・イン・ザ・フランキス">Lダーリン・イン・ザ・フランキス</option>
+                            
+                            <option value="Lパチスロ ありふれた職業で世界最強">Lパチスロ ありふれた職業で世界最強</option>
+                            
+                            <option value="Lパチスロ かぐや様は告らせたい">Lパチスロ かぐや様は告らせたい</option>
+                            
+                            <option value="Lパチスロ 機動戦士ガンダムユニコーン 覚醒DRIVE">Lパチスロ 機動戦士ガンダムユニコーン 覚醒DRIVE</option>
+                            
+                            <option value="Lパチスロうみねこのなく頃に2">Lパチスロうみねこのなく頃に2</option>
+                            
+                            <option value="Lパチスロからくりサーカス">Lパチスロからくりサーカス</option>
+                            
+                            <option value="Lパチスロからくりサーカス2">Lパチスロからくりサーカス2</option>
+                            
+                            <option value="Lパチスロ炎炎ノ消防隊2">Lパチスロ炎炎ノ消防隊2</option>
+                            
+                            <option value="Lパチスロ革命機ヴァルヴレイヴ2">Lパチスロ革命機ヴァルヴレイヴ2</option>
+                            
+                            <option value="Lラブ嬢3～Wご指名はいかがですか?～">Lラブ嬢3～Wご指名はいかがですか?～</option>
+                            
+                            <option value="L不二子BT">L不二子BT</option>
+                            
+                            <option value="L主役は銭形5">L主役は銭形5</option>
+                            
+                            <option value="L化物語">L化物語</option>
+                            
+                            <option value="L北斗 転生の章2">L北斗 転生の章2</option>
+                            
+                            <option value="L南国育ち SPECIAL">L南国育ち SPECIAL</option>
+                            
+                            <option value="L南国育ちSPECIAL">L南国育ちSPECIAL</option>
+                            
+                            <option value="L少女☆歌劇 レヴュースタァライト -The SLOT-">L少女☆歌劇 レヴュースタァライト -The SLOT-</option>
+                            
+                            <option value="L戦国乙女4">L戦国乙女4</option>
+                            
+                            <option value="L戦国乙女5 業火を穿つ宿焔の双刃">L戦国乙女5 業火を穿つ宿焔の双刃</option>
+                            
+                            <option value="L戦国乙女４　戦乱に閃く炯眼の軍師">L戦国乙女４　戦乱に閃く炯眼の軍師</option>
+                            
+                            <option value="L攻殻機動隊">L攻殻機動隊</option>
+                            
+                            <option value="L新鬼武者3">L新鬼武者3</option>
+                            
+                            <option value="L東京喰種">L東京喰種</option>
+                            
+                            <option value="L東京ﾘﾍﾞﾝｼﾞｬｰｽﾞ">L東京ﾘﾍﾞﾝｼﾞｬｰｽﾞ</option>
+                            
+                            <option value="L機動戦士ｶﾞﾝﾀﾞﾑﾕﾆｺｰﾝ覚醒">L機動戦士ｶﾞﾝﾀﾞﾑﾕﾆｺｰﾝ覚醒</option>
+                            
+                            <option value="L炎炎ﾉ消防隊">L炎炎ﾉ消防隊</option>
+                            
+                            <option value="L炎炎ﾉ消防隊2">L炎炎ﾉ消防隊2</option>
+                            
+                            <option value="L無職転生">L無職転生</option>
+                            
+                            <option value="L無職転生～異世界行ったら本気だす～">L無職転生～異世界行ったら本気だす～</option>
+                            
+                            <option value="L甲鉄城のｶﾊﾞﾈﾘ海門決戦">L甲鉄城のｶﾊﾞﾈﾘ海門決戦</option>
+                            
+                            <option value="L真・一騎当千">L真・一騎当千</option>
+                            
+                            <option value="L真打吉宗">L真打吉宗</option>
+                            
+                            <option value="L真･一騎当千">L真･一騎当千</option>
+                            
+                            <option value="L秘宝伝">L秘宝伝</option>
+                            
+                            <option value="L範馬刃牙">L範馬刃牙</option>
+                            
+                            <option value="L絶対衝激IV">L絶対衝激IV</option>
+                            
+                            <option value="L虚構推理">L虚構推理</option>
+                            
+                            <option value="L鉄拳6">L鉄拳6</option>
+                            
+                            <option value="L防振り">L防振り</option>
+                            
+                            <option value="L革命機ｳﾞｧﾙｳﾞﾚｲｳﾞ2">L革命機ｳﾞｧﾙｳﾞﾚｲｳﾞ2</option>
+                            
+                            <option value="L頭文字D 2nd">L頭文字D 2nd</option>
+                            
+                            <option value="Lｱｸﾀﾞﾏﾄﾞﾗｲﾌﾞ">Lｱｸﾀﾞﾏﾄﾞﾗｲﾌﾞ</option>
+                            
+                            <option value="LｱｽﾞｰﾙﾚｰﾝTHE ANIMATION">LｱｽﾞｰﾙﾚｰﾝTHE ANIMATION</option>
+                            
+                            <option value="Lｱﾆﾏﾙｽﾛｯﾄﾄﾞｯﾁ">Lｱﾆﾏﾙｽﾛｯﾄﾄﾞｯﾁ</option>
+                            
+                            <option value="Lｺﾞｯﾄﾞｲｰﾀｰ ﾘｻﾞﾚｸｼｮﾝ">Lｺﾞｯﾄﾞｲｰﾀｰ ﾘｻﾞﾚｸｼｮﾝ</option>
+                            
+                            <option value="Lｽﾀｰﾊﾅﾊﾅ">Lｽﾀｰﾊﾅﾊﾅ</option>
+                            
+                            <option value="Lｽﾏｽﾛ北斗">Lｽﾏｽﾛ北斗</option>
+                            
+                            <option value="Lﾀﾞｰｸﾊｲﾋﾞ">Lﾀﾞｰｸﾊｲﾋﾞ</option>
+                            
+                            <option value="LﾃﾞｨｽｸｱｯﾌﾟULTRAREMIX">LﾃﾞｨｽｸｱｯﾌﾟULTRAREMIX</option>
+                            
+                            <option value="Lﾊﾅﾋﾞ">Lﾊﾅﾋﾞ</option>
+                            
+                            <option value="Lﾊﾞｲｵﾊｻﾞｰﾄﾞ5">Lﾊﾞｲｵﾊｻﾞｰﾄﾞ5</option>
+                            
+                            <option value="LﾊﾞｲｵﾊｻﾞｰﾄﾞRE：3">LﾊﾞｲｵﾊｻﾞｰﾄﾞRE：3</option>
+                            
+                            <option value="Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK">Lﾊﾞｼﾞﾘｽｸ絆2天膳BLACK</option>
+                            
+                            <option value="Lﾊﾟﾁｽﾛ ﾗﾌﾞ嬢3 Wご指名">Lﾊﾟﾁｽﾛ ﾗﾌﾞ嬢3 Wご指名</option>
+                            
+                            <option value="Lﾌﾟﾘｽﾞﾑﾅﾅ">Lﾌﾟﾘｽﾞﾑﾅﾅ</option>
+                            
+                            <option value="Lﾏｷﾞｱﾚｺｰﾄﾞ">Lﾏｷﾞｱﾚｺｰﾄﾞ</option>
+                            
+                            <option value="Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</option>
+                            
+                            <option value="LﾓﾝｷｰﾀｰﾝV">LﾓﾝｷｰﾀｰﾝV</option>
+                            
+                            <option value="Lﾓﾝｽﾀｰﾊﾝﾀｰﾗｲｽﾞ">Lﾓﾝｽﾀｰﾊﾝﾀｰﾗｲｽﾞ</option>
+                            
+                            <option value="Lﾔﾊﾞﾁﾊﾞ">Lﾔﾊﾞﾁﾊﾞ</option>
+                            
+                            <option value="Lﾖﾙﾑﾝｶﾞﾝﾄﾞ">Lﾖﾙﾑﾝｶﾞﾝﾄﾞ</option>
+                            
+                            <option value="Lﾛｰﾃｨｽ">Lﾛｰﾃｨｽ</option>
+                            
+                            <option value="SBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV-30">SBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV-30</option>
+                            
+                            <option value="SHAKE BONUS TRIGGER">SHAKE BONUS TRIGGER</option>
+                            
+                            <option value="いざ！番長">いざ！番長</option>
+                            
+                            <option value="アニマルスロット ドッチ">アニマルスロット ドッチ</option>
+                            
+                            <option value="アレックス ブライト">アレックス ブライト</option>
+                            
+                            <option value="ウルトラミラクルジャグラー">ウルトラミラクルジャグラー</option>
+                            
+                            <option value="クレアの秘宝伝～はじまりの扉と太陽の石～ボーナストリガーver.">クレアの秘宝伝～はじまりの扉と太陽の石～ボーナストリガーver.</option>
+                            
+                            <option value="ゴーゴージャグラー３">ゴーゴージャグラー３</option>
+                            
+                            <option value="ジャグラーガールズSS">ジャグラーガールズSS</option>
+                            
+                            <option value="スマスロ ゴッドイーター リザレクション">スマスロ ゴッドイーター リザレクション</option>
+                            
+                            <option value="スマスロ ゴブリンスレイヤーⅡ">スマスロ ゴブリンスレイヤーⅡ</option>
+                            
+                            <option value="スマスロ サンダーV">スマスロ サンダーV</option>
+                            
+                            <option value="スマスロ スーパーブラックジャック">スマスロ スーパーブラックジャック</option>
+                            
+                            <option value="スマスロ スーパーリオエース2">スマスロ スーパーリオエース2</option>
+                            
+                            <option value="スマスロ ハナビ">スマスロ ハナビ</option>
+                            
+                            <option value="スマスロ バイオハザード5">スマスロ バイオハザード5</option>
+                            
+                            <option value="スマスロ バイオハザードRE:3">スマスロ バイオハザードRE:3</option>
+                            
+                            <option value="スマスロ ビッグドリーム THE GOLDEN PUSHER">スマスロ ビッグドリーム THE GOLDEN PUSHER</option>
+                            
+                            <option value="スマスロ マギアレコード 魔法少女まどか☆マギカ外伝">スマスロ マギアレコード 魔法少女まどか☆マギカ外伝</option>
+                            
+                            <option value="スマスロ ミリオンゴッド-神々の軌跡-">スマスロ ミリオンゴッド-神々の軌跡-</option>
+                            
+                            <option value="スマスロ モンスターハンターライズ">スマスロ モンスターハンターライズ</option>
+                            
+                            <option value="スマスロ 攻殻機動隊">スマスロ 攻殻機動隊</option>
+                            
+                            <option value="スマスロ 東京リベンジャーズ">スマスロ 東京リベンジャーズ</option>
+                            
+                            <option value="スマスロ 沖ドキ!DUO アンコール">スマスロ 沖ドキ!DUO アンコール</option>
+                            
+                            <option value="スマスロ 甲鉄城のカバネリ 海門決戦">スマスロ 甲鉄城のカバネリ 海門決戦</option>
+                            
+                            <option value="スマスロ 銀河英雄伝説 Die Neue These">スマスロ 銀河英雄伝説 Die Neue These</option>
+                            
+                            <option value="スマスロBIRDIE WING-Golf Girls’ Story-">スマスロBIRDIE WING-Golf Girls’ Story-</option>
+                            
+                            <option value="スマスロとある科学の超電磁砲2">スマスロとある科学の超電磁砲2</option>
+                            
+                            <option value="スマスロケロット5BT">スマスロケロット5BT</option>
+                            
+                            <option value="スマスロネオプラネット">スマスロネオプラネット</option>
+                            
+                            <option value="スマスロバジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION">スマスロバジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION</option>
+                            
+                            <option value="スマスロモンキーターンV">スマスロモンキーターンV</option>
+                            
+                            <option value="スマスロヨルムンガンド">スマスロヨルムンガンド</option>
+                            
+                            <option value="スマスロ化物語">スマスロ化物語</option>
+                            
+                            <option value="スマスロ北斗の拳 転生の章2">スマスロ北斗の拳 転生の章2</option>
+                            
+                            <option value="スマスロ新鬼武者3">スマスロ新鬼武者3</option>
+                            
+                            <option value="スマスロ痛いのは嫌なので防御力に極振りしたいと思います。">スマスロ痛いのは嫌なので防御力に極振りしたいと思います。</option>
+                            
+                            <option value="スマスロ秘宝伝">スマスロ秘宝伝</option>
+                            
+                            <option value="スマスロ鉄拳6">スマスロ鉄拳6</option>
+                            
+                            <option value="スマート沖スロ ダークハイビ">スマート沖スロ ダークハイビ</option>
+                            
+                            <option value="スロット ソードアート・オンラインⅡ">スロット ソードアート・オンラインⅡ</option>
+                            
+                            <option value="ドラゴンハナハナ～閃光～‐30">ドラゴンハナハナ～閃光～‐30</option>
+                            
+                            <option value="ニューキングハナハナV‐30">ニューキングハナハナV‐30</option>
+                            
+                            <option value="ネオアイムジャグラーEX">ネオアイムジャグラーEX</option>
+                            
+                            <option value="ハッピージャグラーＶＩＩＩ">ハッピージャグラーＶＩＩＩ</option>
+                            
+                            <option value="バーニングエクスプレス">バーニングエクスプレス</option>
+                            
+                            <option value="パチスロ 転生したら剣でした">パチスロ 転生したら剣でした</option>
+                            
+                            <option value="パチスロ　甲鉄城のカバネリ">パチスロ　甲鉄城のカバネリ</option>
+                            
+                            <option value="ファンキージャグラー２ＫＴ">ファンキージャグラー２ＫＴ</option>
+                            
+                            <option value="プリズムナナ">プリズムナナ</option>
+                            
+                            <option value="マイジャグラーV">マイジャグラーV</option>
+                            
+                            <option value="ヤバチバ">ヤバチバ</option>
+                            
+                            <option value="吉宗">吉宗</option>
+                            
+                            <option value="戦国コレクション6">戦国コレクション6</option>
+                            
+                            <option value="沖ドキ!ゴージャス 30Φ">沖ドキ!ゴージャス 30Φ</option>
+                            
+                            <option value="沖ﾄﾞｷ!ｺﾞｰｼﾞｬｽ-30">沖ﾄﾞｷ!ｺﾞｰｼﾞｬｽ-30</option>
+                            
+                            <option value="甲鉄城のｶﾊﾞﾈﾘ">甲鉄城のｶﾊﾞﾈﾘ</option>
+                            
+                            <option value="真打 吉宗">真打 吉宗</option>
+                            
+                            <option value="ｳﾙﾄﾗﾐﾗｸﾙｼﾞｬｸﾞﾗｰ">ｳﾙﾄﾗﾐﾗｸﾙｼﾞｬｸﾞﾗｰ</option>
+                            
+                            <option value="ｺﾞｰｺﾞｰｼﾞｬｸﾞﾗｰ3">ｺﾞｰｺﾞｰｼﾞｬｸﾞﾗｰ3</option>
+                            
+                            <option value="ｼﾞｬｸﾞﾗｰｶﾞｰﾙｽﾞSS">ｼﾞｬｸﾞﾗｰｶﾞｰﾙｽﾞSS</option>
+                            
+                            <option value="ﾄﾞﾗｺﾞﾝﾊﾅﾊﾅ閃光-30">ﾄﾞﾗｺﾞﾝﾊﾅﾊﾅ閃光-30</option>
+                            
+                            <option value="ﾈｵｱｲﾑｼﾞｬｸﾞﾗｰEX">ﾈｵｱｲﾑｼﾞｬｸﾞﾗｰEX</option>
+                            
+                            <option value="ﾊｯﾋﾟｰｼﾞｬｸﾞﾗｰVIII">ﾊｯﾋﾟｰｼﾞｬｸﾞﾗｰVIII</option>
+                            
+                            <option value="ﾌｧﾝｷｰｼﾞｬｸﾞﾗｰ2KT">ﾌｧﾝｷｰｼﾞｬｸﾞﾗｰ2KT</option>
+                            
+                            <option value="ﾏｲｼﾞｬｸﾞﾗｰV">ﾏｲｼﾞｬｸﾞﾗｰV</option>
+                            
                         </select>
                     </div>
                     <div>
@@ -3851,35 +4199,8 @@
             initMachineSelect();
         });
 
-        // オススメ機種のセレクトボックス初期化
-        function initMachineSelect() {
-            if (window.location.protocol === 'file:') {
-                // file:// スキーム時は、ダミー防止として「機種名を選択」のままにするか無効化
-                const select = document.getElementById('rec-machine-select');
-                if (select) {
-                    select.disabled = true;
-                    const opt = document.createElement('option');
-                    opt.textContent = 'start.batから起動時のみ利用可能';
-                    select.appendChild(opt);
-                }
-                return;
-            }
-            
-            const select = document.getElementById('rec-machine-select');
-            if (!select) return;
-            
-            fetch('/api/machines')
-                .then(res => res.json())
-                .then(machines => {
-                    machines.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m;
-                        opt.textContent = m;
-                        select.appendChild(opt);
-                    });
-                })
-                .catch(err => console.error('Failed to load machines list', err));
-        }
+        // オススメ機種のセレクトボックス初期化 (Jinja2で静的に pre-render されるため何もしません)
+        function initMachineSelect() {}
 
         // オススメ機種の新規登録
         function registerRecommendation() {
@@ -3898,6 +4219,18 @@
             
             if (new Date(start) > new Date(end)) {
                 showRecError('開始日は終了日以前の日付を指定してください。');
+                return;
+            }
+            
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isLocal) {
+                triggerCloudWorkflow('おすすめ機種の登録と再検証', {
+                    action: 'register_recommendation',
+                    machine: machine,
+                    start: start,
+                    end: end,
+                    label: label
+                });
                 return;
             }
             
@@ -3957,7 +4290,7 @@
         }
 
         // クラウドの GitHub Actions ワークフローを実行する共通関数
-        function triggerCloudWorkflow(actionName) {
+        function triggerCloudWorkflow(actionName, payload = null) {
             let token = '';
             try {
                 token = localStorage.getItem('github_pat_token') || '';
@@ -3995,6 +4328,13 @@
             if (btnTune) { btnTune.disabled = true; btnTune.textContent = '⏳ クラウド起動中...'; }
             if (btnGoraggio) { btnGoraggio.disabled = true; btnGoraggio.textContent = '⏳ クラウド起動中...'; }
             
+            const reqBody = {
+                event_type: 'manual_trigger'
+            };
+            if (payload) {
+                reqBody.client_payload = payload;
+            }
+            
             fetch('https://api.github.com/repos/t9star/slot-data-analyzer/dispatches', {
                 method: 'POST',
                 headers: {
@@ -4002,9 +4342,7 @@
                     'Authorization': `token ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    event_type: 'manual_trigger'
-                })
+                body: JSON.stringify(reqBody)
             })
             .then(res => {
                 if (res.status === 204) {
