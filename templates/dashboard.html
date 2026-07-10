@@ -2368,11 +2368,41 @@
             const tbody = document.getElementById('modal-history-tbody');
             
             slotNumEl.textContent = slotNumber;
+            machineEl.textContent = '読み込み中...';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--accent-color); padding:20px;">履歴データを取得中...</td></tr>';
             modal.style.display = 'flex';
             
-            const history = slotHistoryData[slotNumber] || [];
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
-            if (history.length === 0) {
+            if (isLocal) {
+                // ローカル環境の場合は API から最新履歴を非同期取得
+                fetch(`/api/slot/history?slot_number=${slotNumber}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger-color); padding:20px;">エラー: ${data.error}</td></tr>`;
+                            return;
+                        }
+                        renderHistoryRows(data.history, machineEl, tbody);
+                    })
+                    .catch(err => {
+                        console.error('Failed to fetch local slot history', err);
+                        // ローカルAPI取得に失敗した場合は、インラインデータへのフォールバックを試みる
+                        fallbackToInlineHistory(slotNumber, machineEl, tbody);
+                    });
+            } else {
+                // 本番環境 (GitHub Pages) はインラインの同期データから取得
+                fallbackToInlineHistory(slotNumber, machineEl, tbody);
+            }
+        }
+
+        function fallbackToInlineHistory(slotNumber, machineEl, tbody) {
+            const history = (typeof slotHistoryData !== 'undefined' && slotHistoryData[slotNumber]) ? slotHistoryData[slotNumber] : [];
+            renderHistoryRows(history, machineEl, tbody);
+        }
+
+        function renderHistoryRows(history, machineEl, tbody) {
+            if (!history || history.length === 0) {
                 machineEl.textContent = 'データなし';
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">過去10日間のデータが存在しません。</td></tr>';
                 return;
