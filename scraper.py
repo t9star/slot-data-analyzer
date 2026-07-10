@@ -333,18 +333,36 @@ import subprocess
 
 def run_curl(args):
     """
-    WAFブロックを回避するため、システムの curl.exe を使ってリクエストを送信する
+    WAFブロックを回避するため、システムの curl.exe または curl を使ってリクエストを送信する
     """
-    cmd = ["curl.exe"] + args
-    try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
-        if result.returncode != 0:
-            print(f"curl.exe execution failed with returncode {result.returncode}")
+    # Windows SchannelのSSL証明書失効リスト取得エラーやSSL警告を回避するためのオプションを追加
+    # --ssl-no-revoke: 証明書失効チェックを回避 (Windows特有)
+    # -k: 証明書エラーを無視
+    additional_opts = ["--ssl-no-revoke", "-k"]
+    
+    cleaned_args = []
+    for opt in additional_opts:
+        if opt not in args:
+            cleaned_args.append(opt)
+    cleaned_args.extend(args)
+    
+    for executable in ["curl.exe", "curl"]:
+        cmd = [executable] + cleaned_args
+        try:
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
+            if result.returncode != 0:
+                stderr_msg = result.stderr.decode('utf-8', errors='replace').strip()
+                print(f"[{executable} failed] returncode={result.returncode}, stderr={stderr_msg}")
+                continue
+            return result.stdout.decode('utf-8', errors='replace')
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            print(f"Error executing {executable}: {e}")
             return ""
-        return result.stdout.decode('utf-8', errors='replace')
-    except Exception as e:
-        print(f"Error executing curl.exe: {e}")
-        return ""
+            
+    print("Error: Both curl.exe and curl executions failed or could not be found.")
+    return ""
 
 def init_goraggio_session(store_id):
     """
