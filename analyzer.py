@@ -130,10 +130,11 @@ def analyze_last_digits(target_day_type=None):
 
 def load_prediction_parameters(model_type="default"):
     """
-    DBの model_parameters テーブルから指定モデル（default / raise / trend）の予測重み設定を読み込む
+    DBの model_parameters テーブルから指定モデル（default / raise / trend / weekday）の予測重み設定を読み込む
+    モデル名に _special または _normal のサフィックスを付与して特定日/通常日を切り替えることができる
     """
     fallbacks = {
-        'default': {
+        'default_special': {
             'weight_slot_avg': 0.4,
             'weight_machine_avg': 0.3,
             'bonus_matching_digit': 250.0,
@@ -141,7 +142,15 @@ def load_prediction_parameters(model_type="default"):
             'bonus_raise_target': 100.0,
             'bonus_weekday_pattern': 0
         },
-        'raise': {
+        'default_normal': {
+            'weight_slot_avg': 0.4,
+            'weight_machine_avg': 0.3,
+            'bonus_matching_digit': 30.0,
+            'bonus_zoro_digit': 10.0,
+            'bonus_raise_target': 120.0,
+            'bonus_weekday_pattern': 100.0
+        },
+        'raise_special': {
             'weight_slot_avg': 0.3,
             'weight_machine_avg': 0.2,
             'bonus_matching_digit': 80.0,
@@ -149,7 +158,15 @@ def load_prediction_parameters(model_type="default"):
             'bonus_raise_target': 300.0,
             'bonus_weekday_pattern': 0
         },
-        'trend': {
+        'raise_normal': {
+            'weight_slot_avg': 0.3,
+            'weight_machine_avg': 0.2,
+            'bonus_matching_digit': 10.0,
+            'bonus_zoro_digit': 5.0,
+            'bonus_raise_target': 350.0,
+            'bonus_weekday_pattern': 80.0
+        },
+        'trend_special': {
             'weight_slot_avg': 0.2,
             'weight_machine_avg': 0.2,
             'bonus_matching_digit': 450.0,
@@ -157,33 +174,65 @@ def load_prediction_parameters(model_type="default"):
             'bonus_raise_target': 50.0,
             'bonus_weekday_pattern': 0
         },
-        'weekday': {
+        'trend_normal': {
+            'weight_slot_avg': 0.3,
+            'weight_machine_avg': 0.3,
+            'bonus_matching_digit': 100.0,
+            'bonus_zoro_digit': 30.0,
+            'bonus_raise_target': 80.0,
+            'bonus_weekday_pattern': 50.0
+        },
+        'weekday_special': {
             'weight_slot_avg': 0.25,
             'weight_machine_avg': 0.2,
             'bonus_matching_digit': 150.0,
             'bonus_zoro_digit': 50.0,
             'bonus_raise_target': 80.0,
             'bonus_weekday_pattern': 200.0
+        },
+        'weekday_normal': {
+            'weight_slot_avg': 0.3,
+            'weight_machine_avg': 0.2,
+            'bonus_matching_digit': 20.0,
+            'bonus_zoro_digit': 10.0,
+            'bonus_raise_target': 80.0,
+            'bonus_weekday_pattern': 300.0
         }
     }
     
-    if model_type not in fallbacks:
-        model_type = 'default'
+    # 既存のレガシーなモデル名（サフィックスなし）は特定日用（_special）として扱う
+    legacy_mapping = {
+        'default': 'default_special',
+        'raise': 'raise_special',
+        'trend': 'trend_special',
+        'weekday': 'weekday_special'
+    }
+    
+    target_model = legacy_mapping.get(model_type, model_type)
+    if target_model not in fallbacks:
+        target_model = 'default_special'
         
-    params = fallbacks[model_type].copy()
+    params = fallbacks[target_model].copy()
+    base_model = target_model.split('_')[0]
     
     conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT key, value FROM model_parameters")
         rows = cursor.fetchall()
-        for k, v in rows:
-            if k.startswith(f"{model_type}_"):
-                key_name = k[len(model_type)+1:]
-                if key_name in params:
-                    params[key_name] = float(v)
-            elif model_type == 'default' and k in params:
-                params[k] = float(v)
+        db_params = {k: float(v) for k, v in rows}
+        
+        # 優先度順にDBの値をロード
+        for key_name in params.keys():
+            db_key_specific = f"{target_model}_{key_name}"  # 例: default_special_weight_slot_avg
+            db_key_base = f"{base_model}_{key_name}"          # 例: default_weight_slot_avg
+            
+            if db_key_specific in db_params:
+                params[key_name] = db_params[db_key_specific]
+            elif db_key_base in db_params:
+                params[key_name] = db_params[db_key_base]
+            elif target_model == 'default_special' and key_name in db_params:
+                params[key_name] = db_params[key_name]
     except Exception:
         pass
     finally:
@@ -193,14 +242,23 @@ def load_prediction_parameters(model_type="default"):
 
 def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     """
-    特定の日付をターゲットにして、期待値の高い台（台番号）を予測スコアリングする (モデルタイプ: default / raise / trend)
+    特定の日付をターゲットにして、期待値の高い台（台番号）を予測スコアリングする (モデルタイプ: default / raise / trend / weekday)
+    特定日（0, 5のつく日）か通常営業日かに応じて自動で予測パラメータを切り替えます。
     """
-    if params is None:
-        params = load_prediction_parameters(model_type)
-        
     target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
     day = target_date.day
+    is_special = (day % 10 == 0 or day % 10 == 5)
     
+    # 特定日/通常営業日に応じた予測モデル名の解決
+    suffix = "_special" if is_special else "_normal"
+    if model_type in ["default", "raise", "trend", "weekday"]:
+        resolved_model_type = f"{model_type}{suffix}"
+    else:
+        resolved_model_type = model_type
+        
+    if params is None:
+        params = load_prediction_parameters(resolved_model_type)
+        
     # ターゲット日の属性判定
     if day % 10 == 0:
         day_type = "0のつく日"
@@ -908,17 +966,26 @@ def tune_prediction_parameters():
         "results": results
     }
 
-def get_prediction_accuracy_report(limit=5):
+def get_prediction_accuracy_report(limit=5, is_special=True):
     """
-    過去の特定日における3つの予測モデル（default / raise / trend）それぞれの答え合わせ成績レポートを生成する
+    過去の日付における予測モデル（default / raise / trend / weekday）それぞれの答え合わせ成績レポートを生成する
+    is_special=True の場合は特定日（0, 5のつく日）、Falseの場合は通常営業日を対象とする
     """
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT date FROM daily_summary 
-        WHERE strftime('%d', date) LIKE '%0' OR strftime('%d', date) LIKE '%5'
-        ORDER BY date DESC LIMIT ?
-    """, (limit,))
+    if is_special:
+        query_dates = """
+            SELECT date FROM daily_summary 
+            WHERE strftime('%d', date) LIKE '%0' OR strftime('%d', date) LIKE '%5'
+            ORDER BY date DESC LIMIT ?
+        """
+    else:
+        query_dates = """
+            SELECT date FROM daily_summary 
+            WHERE NOT (strftime('%d', date) LIKE '%0' OR strftime('%d', date) LIKE '%5')
+            ORDER BY date DESC LIMIT ?
+        """
+    cursor.execute(query_dates, (limit,))
     target_dates = [row[0] for row in cursor.fetchall()]
     conn.close()
     
@@ -926,7 +993,9 @@ def get_prediction_accuracy_report(limit=5):
         return []
         
     report = []
-    model_types = ['default', 'raise', 'trend', 'weekday']
+    base_models = ['default', 'raise', 'trend', 'weekday']
+    suffix = "_special" if is_special else "_normal"
+    model_types = [f"{m}{suffix}" for m in base_models]
     
     # あらかじめ全モデルの現在のパラメータをロードしておく
     model_params = {m: load_prediction_parameters(m) for m in model_types}
@@ -936,9 +1005,10 @@ def get_prediction_accuracy_report(limit=5):
         day_results = {"date": date_str}
         
         for m_type in model_types:
+            base_name = m_type.split('_')[0]
             pred_df = predict_next_hot_slots(date_str, model_params[m_type], m_type)
             if pred_df is None or pred_df.empty:
-                day_results[m_type] = {"avg_diff": 0, "win_rate": 0.0}
+                day_results[base_name] = {"avg_diff": 0, "win_rate": 0.0}
                 continue
                 
             slot_list = pred_df['slot_number'].tolist()
@@ -955,12 +1025,12 @@ def get_prediction_accuracy_report(limit=5):
             if diffs:
                 avg_diff = sum(diffs) / len(diffs)
                 win_rate = (sum(wins) / len(wins) * 100) if wins else 0.0
-                day_results[m_type] = {
+                day_results[base_name] = {
                     "avg_diff": int(round(avg_diff)),
                     "win_rate": round(win_rate, 1)
                 }
             else:
-                day_results[m_type] = {"avg_diff": 0, "win_rate": 0.0}
+                day_results[base_name] = {"avg_diff": 0, "win_rate": 0.0}
                 
         report.append(day_results)
         

@@ -155,12 +155,35 @@ def generate_dashboard():
     setting_habits = analyzer.analyze_setting_change_habits()
     recommendations = analyzer.analyze_recommended_machines()
     
-    # 複数モデルパラメータと精度検証データの取得
-    params_default = analyzer.load_prediction_parameters("default")
-    params_raise = analyzer.load_prediction_parameters("raise")
-    params_trend = analyzer.load_prediction_parameters("trend")
-    params_weekday = analyzer.load_prediction_parameters("weekday")
-    accuracy_report = analyzer.get_prediction_accuracy_report(limit=5)
+    # 次回の期待予測日 (predict_date) の属性（特定日か通常日か）を判定して初期パラメータをロード
+    predict_date = get_next_special_date(end_date)
+    predict_day_dt = datetime.strptime(predict_date, "%Y-%m-%d")
+    is_predict_special = (predict_day_dt.day % 10 == 0 or predict_day_dt.day % 10 == 5)
+    
+    # 特定日用と通常日用のすべての予測パラメータを個別にロード
+    params_default_special = analyzer.load_prediction_parameters("default_special")
+    params_default_normal = analyzer.load_prediction_parameters("default_normal")
+    params_raise_special = analyzer.load_prediction_parameters("raise_special")
+    params_raise_normal = analyzer.load_prediction_parameters("raise_normal")
+    params_trend_special = analyzer.load_prediction_parameters("trend_special")
+    params_trend_normal = analyzer.load_prediction_parameters("trend_normal")
+    params_weekday_special = analyzer.load_prediction_parameters("weekday_special")
+    params_weekday_normal = analyzer.load_prediction_parameters("weekday_normal")
+    
+    if is_predict_special:
+        params_default = params_default_special
+        params_raise = params_raise_special
+        params_trend = params_trend_special
+        params_weekday = params_weekday_special
+    else:
+        params_default = params_default_normal
+        params_raise = params_raise_normal
+        params_trend = params_trend_normal
+        params_weekday = params_weekday_normal
+    
+    # 特定日と通常日、それぞれの精度レポート（過去5日分ずつ）を取得
+    accuracy_report_special = analyzer.get_prediction_accuracy_report(limit=5, is_special=True)
+    accuracy_report_normal = analyzer.get_prediction_accuracy_report(limit=5, is_special=False)
     
     # 順位ソートなどを調整
     if machine_stats is not None:
@@ -218,7 +241,7 @@ def generate_dashboard():
         predict_date=predict_date,
         predict_day_type=predict_day_type,
         
-        # 3つの予測結果とパラメータ
+        # 予測結果とパラメータ
         predictions_default=predictions_default,
         predictions_raise=predictions_raise,
         predictions_trend=predictions_trend,
@@ -228,13 +251,24 @@ def generate_dashboard():
         params_trend=params_trend,
         params_weekday=params_weekday,
         
+        # 特定日/通常日個別の全パラメータ
+        params_default_special=params_default_special,
+        params_default_normal=params_default_normal,
+        params_raise_special=params_raise_special,
+        params_raise_normal=params_raise_normal,
+        params_trend_special=params_trend_special,
+        params_trend_normal=params_trend_normal,
+        params_weekday_special=params_weekday_special,
+        params_weekday_normal=params_weekday_normal,
+        
         recent_trends=recent_trends,
         calendar_data=calendar_data,
         detected_blocks=detected_blocks,
         weekday_trends=weekday_trends,
         setting_habits=setting_habits,
         recommendations=recommendations,
-        accuracy_report=accuracy_report,
+        accuracy_report_special=accuracy_report_special,
+        accuracy_report_normal=accuracy_report_normal,
         machines=machines,
         slot_history_data=slot_history_data,
         all_predictions_data=all_predictions_data
