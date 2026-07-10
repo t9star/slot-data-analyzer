@@ -14,10 +14,10 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
@@ -53,13 +53,14 @@ jobs:
 
     - name: Regenerate Dashboard
       run: |
-        # 解析とダッシュボードHTMLの再生成
+        # 解析とダッシュボードHTML of 再生成
         python dashboard_generator.py
 
     - name: Commit and Push Changes
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add index.html slot_data.db progress.json
+        git add index.html slot_data.db
+        git add -f progress.json || true # progress.json があれば強制add
         # 差分がある場合のみコミット
         git diff --quiet && git diff --staged --quiet || (git commit -m "auto: Daily data update $(date +'%Y-%m-%d %H:%M:%S')" && git push origin master)
