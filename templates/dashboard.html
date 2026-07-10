@@ -1919,7 +1919,8 @@
             }
         }
 
-        // 5. 実績カレンダー描画ロジック
+        // 5. 台番号別履歴データと実績カレンダー描画ロジック
+        const slotHistoryData = {{ slot_history_data | tojson }};
         const calendarRawData = {{ calendar_data | tojson }};
         const calendarMap = {};
         calendarRawData.forEach(item => {
