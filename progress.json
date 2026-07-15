@@ -1,7 +1,7 @@
 {
-  "status": "done",
-  "current": 10,
-  "total": 10,
-  "message": "通常営業日データの回収完了！ 10台のスロット詳細データを過去8日分回収しました。",
-  "updated_at": "2026-07-15 17:56:37"
+  "status": "idle",
+  "current": 0,
+  "total": 0,
+  "message": "待機中",
+  "updated_at": "2026-07-15 17:59:29"
 }

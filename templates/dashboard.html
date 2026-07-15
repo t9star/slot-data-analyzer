@@ -2372,12 +2372,13 @@
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--accent-color); padding:20px;">履歴データを取得中...</td></tr>';
             
             // 吹き出し（ポップオーバー）の位置を設定
-            let left = 20;
-            let top = 100;
             const popupWidth = 330;
             const popupHeight = 350; // 目安の高さ
             
-            if (event) {
+            let left = (window.innerWidth - popupWidth) / 2;
+            let top = window.scrollY + 150; // デフォルトは画面中央付近
+            
+            if (event && event.pageX && event.pageY) {
                 event.stopPropagation(); // 外側クリック検出イベントと干渉しないよう伝播を止める
                 
                 left = event.pageX - (popupWidth / 2);
@@ -2410,7 +2411,11 @@
                 document.addEventListener('click', function(e) {
                     const m = document.getElementById('slot-history-modal');
                     if (m && m.style.display === 'block') {
-                        if (!m.contains(e.target)) {
+                        // モーダルの外側をクリックし、かつクリックされた要素が「台番号セル」ではない場合に閉じる
+                        const isModalInside = m.contains(e.target);
+                        const isSlotCell = e.target.closest('[onclick*="showSlotHistory"]');
+                        
+                        if (!isModalInside && !isSlotCell) {
                             closeSlotHistory();
                         }
                     }
