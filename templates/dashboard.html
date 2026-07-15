@@ -2384,27 +2384,22 @@
             let left = (window.innerWidth - popupWidth) / 2;
             let top = window.scrollY + 150; // デフォルトは画面中央付近
             
-            if (event && (event.pageX || event.pageY)) {
-                const px = event.pageX || 0;
-                const py = event.pageY || window.scrollY + 150;
+            if (event && (event.clientX || event.clientY)) {
+                const cx = event.clientX || 0;
+                const cy = event.clientY || 100;
                 
-                left = px - (popupWidth / 2);
-                top = py + 15;
+                left = cx - (popupWidth / 2);
+                top = cy + 20;
                 
                 // 画面端のはみ出し防止
                 if (left < 10) left = 10;
-                if (left + popupWidth > window.innerWidth) {
+                if (left + popupWidth > window.innerWidth - 10) {
                     left = window.innerWidth - popupWidth - 10;
                 }
                 
-                // 下端のはみ出し防止
-                const scrollHeight = Math.max(
-                    document.body.scrollHeight, document.documentElement.scrollHeight,
-                    document.body.offsetHeight, document.documentElement.offsetHeight,
-                    document.body.clientHeight, document.documentElement.clientHeight
-                );
-                if (top + popupHeight > scrollHeight) {
-                    top = py - popupHeight - 15;
+                // 下端のはみ出し防止（viewportの高さを基準）
+                if (top + popupHeight > window.innerHeight - 10) {
+                    top = cy - popupHeight - 15;
                 }
                 if (top < 10) top = 10;
             }
@@ -2610,7 +2605,7 @@
     </script>
 
     <!-- 台番号個別履歴ポップオーバー（吹き出し形式） -->
-    <div id="slot-history-modal" style="display: none; position: absolute; width: 335px; background: #111; border: 2px solid var(--primary-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.85), 0 0 15px rgba(0,186,242,0.25); z-index: 9999; animation: modalFadeIn 0.2s ease-out;">
+    <div id="slot-history-modal" style="display: none; position: fixed; width: 335px; max-width: calc(100vw - 20px); background: #111; border: 2px solid var(--primary-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.85), 0 0 15px rgba(0,186,242,0.25); z-index: 99999; animation: modalFadeIn 0.2s ease-out;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px;">
             <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;">
                 🎰 <span id="modal-slot-number" style="color: var(--accent-color); font-weight: 800;">-</span> 番台 過去履歴 (直近10日)

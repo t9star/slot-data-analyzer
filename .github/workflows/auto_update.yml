@@ -65,6 +65,10 @@ jobs:
         # 差分がある場合のみコミット＆リベースプッシュ
         if ! git diff --quiet || ! git diff --staged --quiet; then
           git commit -m "auto: Daily data update $(date +'%Y-%m-%d %H:%M:%S')"
-          git pull --rebase origin master
-          git push origin master
+          # 競合が起きた場合に備えてリトライ（最大3回）
+          for i in 1 2 3; do
+            git pull --rebase origin master && git push origin master && break
+            echo "Push failed (attempt $i), retrying in 5s..."
+            sleep 5
+          done
         fi

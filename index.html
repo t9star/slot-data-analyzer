@@ -663,7 +663,7 @@
                     <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
                     <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
                 </div>
-                <p>ダッシュボード生成日時: 2026-07-15 18:13:17</p>
+                <p>ダッシュボード生成日時: 2026-07-15 18:20:59</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-07-15</p>
             </div>
         </header>
@@ -4483,7 +4483,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-12</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">1866 - 1868</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">L甲鉄城のｶﾊﾞﾈﾘ海門決戦 / Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">Lﾐﾘｵﾝｺﾞｯﾄﾞ神々の軌跡 / L甲鉄城のｶﾊﾞﾈﾘ海門決戦</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +16,630枚
@@ -4519,7 +4519,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-11</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2066 - 2068</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｻﾝﾀﾞｰV / Lうみねこのなく頃に2 / LB SHAKE BONUS TRIGGER</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LB SHAKE BONUS TRIGGER / Lうみねこのなく頃に2 / LBｻﾝﾀﾞｰV</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +7,687枚
@@ -4543,7 +4543,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-07-11</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">2065 - 2067</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">Lうみねこのなく頃に2 / LB SHAKE BONUS TRIGGER / LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｱﾚｯｸｽ ﾌﾞﾗｲﾄ / LB SHAKE BONUS TRIGGER / Lうみねこのなく頃に2</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,840枚
@@ -5966,27 +5966,22 @@
             let left = (window.innerWidth - popupWidth) / 2;
             let top = window.scrollY + 150; // デフォルトは画面中央付近
             
-            if (event && (event.pageX || event.pageY)) {
-                const px = event.pageX || 0;
-                const py = event.pageY || window.scrollY + 150;
+            if (event && (event.clientX || event.clientY)) {
+                const cx = event.clientX || 0;
+                const cy = event.clientY || 100;
                 
-                left = px - (popupWidth / 2);
-                top = py + 15;
+                left = cx - (popupWidth / 2);
+                top = cy + 20;
                 
                 // 画面端のはみ出し防止
                 if (left < 10) left = 10;
-                if (left + popupWidth > window.innerWidth) {
+                if (left + popupWidth > window.innerWidth - 10) {
                     left = window.innerWidth - popupWidth - 10;
                 }
                 
-                // 下端のはみ出し防止
-                const scrollHeight = Math.max(
-                    document.body.scrollHeight, document.documentElement.scrollHeight,
-                    document.body.offsetHeight, document.documentElement.offsetHeight,
-                    document.body.clientHeight, document.documentElement.clientHeight
-                );
-                if (top + popupHeight > scrollHeight) {
-                    top = py - popupHeight - 15;
+                // 下端のはみ出し防止（viewportの高さを基準）
+                if (top + popupHeight > window.innerHeight - 10) {
+                    top = cy - popupHeight - 15;
                 }
                 if (top < 10) top = 10;
             }
@@ -6192,7 +6187,7 @@
     </script>
 
     <!-- 台番号個別履歴ポップオーバー（吹き出し形式） -->
-    <div id="slot-history-modal" style="display: none; position: absolute; width: 335px; background: #111; border: 2px solid var(--primary-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.85), 0 0 15px rgba(0,186,242,0.25); z-index: 9999; animation: modalFadeIn 0.2s ease-out;">
+    <div id="slot-history-modal" style="display: none; position: fixed; width: 335px; max-width: calc(100vw - 20px); background: #111; border: 2px solid var(--primary-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.85), 0 0 15px rgba(0,186,242,0.25); z-index: 99999; animation: modalFadeIn 0.2s ease-out;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px;">
             <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;">
                 🎰 <span id="modal-slot-number" style="color: var(--accent-color); font-weight: 800;">-</span> 番台 過去履歴 (直近10日)
