@@ -2362,6 +2362,12 @@
 
         // 台番号個別データ履歴モーダル表示
         function showSlotHistory(slotNumber, event) {
+            // バブリングを最初に止める（外側クリックの即時閉じを防ぐ）
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            
             const modal = document.getElementById('slot-history-modal');
             const slotNumEl = document.getElementById('modal-slot-number');
             const machineEl = document.getElementById('modal-slot-machine');
@@ -2378,11 +2384,12 @@
             let left = (window.innerWidth - popupWidth) / 2;
             let top = window.scrollY + 150; // デフォルトは画面中央付近
             
-            if (event && event.pageX && event.pageY) {
-                event.stopPropagation(); // 外側クリック検出イベントと干渉しないよう伝播を止める
+            if (event && (event.pageX || event.pageY)) {
+                const px = event.pageX || 0;
+                const py = event.pageY || window.scrollY + 150;
                 
-                left = event.pageX - (popupWidth / 2);
-                top = event.pageY + 15;
+                left = px - (popupWidth / 2);
+                top = py + 15;
                 
                 // 画面端のはみ出し防止
                 if (left < 10) left = 10;
@@ -2397,7 +2404,7 @@
                     document.body.clientHeight, document.documentElement.clientHeight
                 );
                 if (top + popupHeight > scrollHeight) {
-                    top = event.pageY - popupHeight - 15;
+                    top = py - popupHeight - 15;
                 }
                 if (top < 10) top = 10;
             }
@@ -2406,15 +2413,14 @@
             modal.style.top = top + 'px';
             modal.style.display = 'block';
             
-            // 外側クリック検出用のイベントリスナーを登録
+            // 外側クリック検出用のイベントリスナーを登録（1回のみ）
             if (!window.slotHistoryOuterClickListenerRegistered) {
                 document.addEventListener('click', function(e) {
                     const m = document.getElementById('slot-history-modal');
                     if (m && m.style.display === 'block') {
-                        // モーダルの外側をクリックし、かつクリックされた要素が「台番号セル」ではない場合に閉じる
+                        // モーダルの内側クリック・台番号セルクリックは無視
                         const isModalInside = m.contains(e.target);
                         const isSlotCell = e.target.closest('[onclick*="showSlotHistory"]');
-                        
                         if (!isModalInside && !isSlotCell) {
                             closeSlotHistory();
                         }
