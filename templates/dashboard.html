@@ -923,7 +923,7 @@
                         {% for index, row in predictions_default.iterrows() %}
                         <tr>
                             <td style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">#{{ loop.index }}</td>
-                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }}, event)" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
                             <td>
@@ -956,7 +956,7 @@
                         {% for index, row in predictions_raise.iterrows() %}
                         <tr>
                             <td style="font-weight: bold; font-size: 1.1rem; color: var(--success-color);">#{{ loop.index }}</td>
-                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(46,204,113,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }}, event)" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
                             <td>
@@ -989,7 +989,7 @@
                         {% for index, row in predictions_trend.iterrows() %}
                         <tr>
                             <td style="font-weight: bold; font-size: 1.1rem; color: var(--accent-color);">#{{ loop.index }}</td>
-                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(255,51,102,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }}, event)" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
                             <td>
@@ -1022,7 +1022,7 @@
                         {% for index, row in predictions_weekday.iterrows() %}
                         <tr>
                             <td style="font-weight: bold; font-size: 1.1rem; color: #a78bfa;">#{{ loop.index }}</td>
-                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }})" title="クリックで直近10日の詳細データを表示">
+                            <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(167,139,250,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory({{ row['slot_number'] }}, event)" title="クリックで直近10日の詳細データを表示">
                                 {{ row['slot_number'] }}
                             </td>
                             <td>
@@ -1831,7 +1831,7 @@
                 html += `
                     <tr>
                         <td style="font-weight: bold; font-size: 1.1rem; color: ${currentModel === 'default' ? 'var(--primary-color)' : (currentModel === 'raise' ? 'var(--success-color)' : (currentModel === 'weekday' ? '#a78bfa' : 'var(--accent-color)'))};">#${idx + 1}</td>
-                        <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number})" title="クリックで直近10日の詳細データを表示">
+                        <td style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent-color); background: rgba(0,186,242,0.05); text-align: center; border-radius: 8px; cursor: pointer; text-decoration: underline;" onclick="showSlotHistory(${row.slot_number}, event)" title="クリックで直近10日の詳細データを表示">
                             ${row.slot_number}
                         </td>
                         <td>
@@ -2361,7 +2361,7 @@
         }
 
         // 台番号個別データ履歴モーダル表示
-        function showSlotHistory(slotNumber) {
+        function showSlotHistory(slotNumber, event) {
             const modal = document.getElementById('slot-history-modal');
             const slotNumEl = document.getElementById('modal-slot-number');
             const machineEl = document.getElementById('modal-slot-machine');
@@ -2370,7 +2370,53 @@
             slotNumEl.textContent = slotNumber;
             machineEl.textContent = '読み込み中...';
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--accent-color); padding:20px;">履歴データを取得中...</td></tr>';
-            modal.style.display = 'flex';
+            
+            // 吹き出し（ポップオーバー）の位置を設定
+            let left = 20;
+            let top = 100;
+            const popupWidth = 330;
+            const popupHeight = 350; // 目安の高さ
+            
+            if (event) {
+                event.stopPropagation(); // 外側クリック検出イベントと干渉しないよう伝播を止める
+                
+                left = event.pageX - (popupWidth / 2);
+                top = event.pageY + 15;
+                
+                // 画面端のはみ出し防止
+                if (left < 10) left = 10;
+                if (left + popupWidth > window.innerWidth) {
+                    left = window.innerWidth - popupWidth - 10;
+                }
+                
+                // 下端のはみ出し防止
+                const scrollHeight = Math.max(
+                    document.body.scrollHeight, document.documentElement.scrollHeight,
+                    document.body.offsetHeight, document.documentElement.offsetHeight,
+                    document.body.clientHeight, document.documentElement.clientHeight
+                );
+                if (top + popupHeight > scrollHeight) {
+                    top = event.pageY - popupHeight - 15;
+                }
+                if (top < 10) top = 10;
+            }
+            
+            modal.style.left = left + 'px';
+            modal.style.top = top + 'px';
+            modal.style.display = 'block';
+            
+            // 外側クリック検出用のイベントリスナーを登録
+            if (!window.slotHistoryOuterClickListenerRegistered) {
+                document.addEventListener('click', function(e) {
+                    const m = document.getElementById('slot-history-modal');
+                    if (m && m.style.display === 'block') {
+                        if (!m.contains(e.target)) {
+                            closeSlotHistory();
+                        }
+                    }
+                });
+                window.slotHistoryOuterClickListenerRegistered = true;
+            }
             
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
@@ -2419,10 +2465,10 @@
                 
                 html += `
                     <tr>
-                        <td style="font-family:monospace;">${h.date}</td>
-                        <td>${h.games.toLocaleString()} G</td>
-                        <td><span style="color:${diffColor}; font-weight:600;">${diffText}</span></td>
-                        <td>${winBadge}</td>
+                        <td style="font-family:monospace; padding: 6px 4px;">${h.date}</td>
+                        <td style="padding: 6px 4px;">${h.games.toLocaleString()} G</td>
+                        <td style="padding: 6px 4px;"><span style="color:${diffColor}; font-weight:600;">${diffText}</span></td>
+                        <td style="padding: 6px 4px;">${winBadge}</td>
                     </tr>
                 `;
             });
@@ -2430,7 +2476,8 @@
         }
         
         function closeSlotHistory() {
-            document.getElementById('slot-history-modal').style.display = 'none';
+            const modal = document.getElementById('slot-history-modal');
+            if (modal) modal.style.display = 'none';
         }
 
         function initEnvironmentCheck() {
@@ -2551,36 +2598,31 @@
         }
     </script>
 
-    <!-- 台番号個別履歴モーダル -->
-    <div id="slot-history-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
-        <div style="background: #111; border: 2px solid var(--primary-color); border-radius: 12px; width: 90%; max-width: 600px; padding: 25px; box-shadow: 0 0 20px rgba(0,186,242,0.3); animation: modalFadeIn 0.3s ease-out;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 15px;">
-                <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
-                    🎰 <span id="modal-slot-number" style="color: var(--accent-color); font-weight: 800;">-</span> 番台 個別データ履歴 (直近10日)
-                </h3>
-                <span onclick="closeSlotHistory()" style="color: var(--text-muted); cursor: pointer; font-size: 1.5rem; font-weight: bold; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
-            </div>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
-                対象機種: <span id="modal-slot-machine" style="color: #fff; font-weight: 600;">-</span>
-            </div>
-            <div class="table-container" style="max-height: 350px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 6px;">
-                <table style="font-size: 0.9rem;">
-                    <thead>
-                        <tr>
-                            <th>日付</th>
-                            <th>稼働ゲーム数</th>
-                            <th>差枚数</th>
-                            <th>勝敗</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modal-history-tbody">
-                        <!-- JSで動的生成 -->
-                    </tbody>
-                </table>
-            </div>
-            <div style="text-align: right; margin-top: 20px;">
-                <button onclick="closeSlotHistory()" class="btn btn-update" style="margin: 0; padding: 8px 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color:#fff; cursor:pointer;">閉じる</button>
-            </div>
+    <!-- 台番号個別履歴ポップオーバー（吹き出し形式） -->
+    <div id="slot-history-modal" style="display: none; position: absolute; width: 335px; background: #111; border: 2px solid var(--primary-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.85), 0 0 15px rgba(0,186,242,0.25); z-index: 9999; animation: modalFadeIn 0.2s ease-out;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px;">
+            <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;">
+                🎰 <span id="modal-slot-number" style="color: var(--accent-color); font-weight: 800;">-</span> 番台 過去履歴 (直近10日)
+            </h3>
+            <span onclick="closeSlotHistory()" style="color: var(--text-muted); cursor: pointer; font-size: 1.3rem; font-weight: bold; transition: color 0.2s; padding: 0 4px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+            対象機種: <span id="modal-slot-machine" style="color: #fff; font-weight: 600;">-</span>
+        </div>
+        <div class="table-container" style="max-height: 280px; overflow-y: auto; background: rgba(0,0,0,0.25); border-radius: 6px;">
+            <table style="font-size: 0.82rem; width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 6px 4px; text-align: left;">日付</th>
+                        <th style="padding: 6px 4px; text-align: right;">ゲーム数</th>
+                        <th style="padding: 6px 4px; text-align: right;">差枚数</th>
+                        <th style="padding: 6px 4px; text-align: center;">勝敗</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-history-tbody">
+                    <!-- JSで動的生成 -->
+                </tbody>
+            </table>
         </div>
     </div>
     <style>
