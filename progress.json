@@ -1,7 +1,7 @@
 {
-  "status": "idle",
+  "status": "error",
   "current": 0,
-  "total": 0,
-  "message": "待機中",
-  "updated_at": "2026-07-15 18:19:05"
+  "total": 100,
+  "message": "セッションの確立に失敗しました。規約同意画面の取得エラーです。",
+  "updated_at": "2026-07-15 19:43:58"
 }
