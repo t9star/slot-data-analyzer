@@ -70,6 +70,7 @@ def set_progress(status, current, total, message):
 def push_to_github():
     """
     更新された index.html を GitHub に自動プッシュする (Git絶対パスルール適用)
+    リモートに新しいコミットがある場合は rebase で吸収してからプッシュする
     """
     try:
         print("[GitHub Push] インターネット公開用データのアップロードを開始します...")
@@ -82,9 +83,24 @@ def push_to_github():
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         subprocess.run([git_path, "commit", "--allow-empty", "-m", f"auto: Update dashboard data {now_str}"], check=True)
         
-        # 3. git push origin master
-        subprocess.run([git_path, "push", "origin", "master"], check=True)
-        print("[GitHub Push] アップロードが正常に完了しました！")
+        # 3. git pull --rebase + push（リモートに先行コミットがある場合を考慮してリトライ）
+        pushed = False
+        for attempt in range(1, 4):
+            try:
+                subprocess.run([git_path, "pull", "--rebase", "origin", "master"], check=True)
+                subprocess.run([git_path, "push", "origin", "master"], check=True)
+                pushed = True
+                break
+            except subprocess.CalledProcessError as retry_err:
+                print(f"[GitHub Push] プッシュ失敗 (試行 {attempt}/3): {retry_err}")
+                if attempt < 3:
+                    import time
+                    time.sleep(5)
+        
+        if pushed:
+            print("[GitHub Push] アップロードが正常に完了しました！")
+        else:
+            print("[GitHub Push] 3回リトライしましたが失敗しました。次回の更新時に自動的に再試行されます。")
     except Exception as e:
         print(f"[GitHub Push] エラーが発生しました: {str(e)}")
 

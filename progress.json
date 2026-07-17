@@ -1,7 +1,7 @@
 {
-  "status": "error",
-  "current": 0,
-  "total": 100,
-  "message": "セッションの確立に失敗しました。規約同意画面の取得エラーです。",
-  "updated_at": "2026-07-16 19:38:04"
+  "status": "done",
+  "current": 450,
+  "total": 450,
+  "message": "通常営業日のデータ回収が完了しました！",
+  "updated_at": "2026-07-17 23:24:12"
 }
