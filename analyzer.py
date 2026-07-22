@@ -1018,7 +1018,8 @@ def tune_prediction_parameters():
                 best_score = score
                 best_params = candidate
                 
-        if best_params:
+        # 探索結果が元のパラメータより改善した場合のみDBを更新する（改悪防止）
+        if best_params and best_score > before_avg_diff:
             conn = get_connection()
             cursor = conn.cursor()
             for k, v in best_params.items():
@@ -1035,6 +1036,13 @@ def tune_prediction_parameters():
                 "after_avg_diff": int(round(after_avg_diff)),
                 "improvement": int(round(improvement)),
                 "updated_params": best_params
+            }
+        else:
+            results[m_type] = {
+                "before_avg_diff": int(round(before_avg_diff)),
+                "after_avg_diff": int(round(before_avg_diff)),
+                "improvement": 0,
+                "updated_params": current_params
             }
             
     return {
