@@ -10,6 +10,13 @@ DB_PATH = os.path.join(PROJECT_DIR, "slot_data.db")
 TEMPLATE_DIR = os.path.join(PROJECT_DIR, "templates")
 OUTPUT_PATH = os.path.join(PROJECT_DIR, "index.html")
 
+def get_next_predict_date(from_date_str):
+    """
+    指定日の翌日（直近の次回営業日）を計算する
+    """
+    current_dt = datetime.strptime(from_date_str, "%Y-%m-%d")
+    return (current_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+
 def get_next_special_date(from_date_str):
     """
     指定日から最も近い「0のつく日」または「5のつく日」を計算する
@@ -127,12 +134,14 @@ def generate_dashboard():
         
     conn.close()
     
-    # 2-4. カレンダーに存在する全日程の3モデル分の予測データを事前構築
+    # 2-4. カレンダーに存在する全日程 + 次回予測日(翌日および次回特定日)の4モデル分の予測データを事前構築
     all_predictions_data = {}
     target_dates = [c["date"] for c in calendar_data]
-    next_date = get_next_special_date(end_date)
-    if next_date not in target_dates:
-        target_dates.append(next_date)
+    next_predict_d = get_next_predict_date(end_date)
+    next_special_d = get_next_special_date(end_date)
+    for d_extra in [next_predict_d, next_special_d]:
+        if d_extra not in target_dates:
+            target_dates.append(d_extra)
         
     for t_date in target_dates:
         all_predictions_data[t_date] = {}
@@ -155,10 +164,17 @@ def generate_dashboard():
     setting_habits = analyzer.analyze_setting_change_habits()
     recommendations = analyzer.analyze_recommended_machines()
     
-    # 次回の期待予測日 (predict_date) の属性（特定日か通常日か）を判定して初期パラメータをロード
-    predict_date = get_next_special_date(end_date)
+    # 次回の期待予測日 (predict_date: 最新データの翌営業日) の属性判定
+    predict_date = get_next_predict_date(end_date)
     predict_day_dt = datetime.strptime(predict_date, "%Y-%m-%d")
     is_predict_special = (predict_day_dt.day % 10 == 0 or predict_day_dt.day % 10 == 5)
+    
+    if predict_day_dt.day % 10 == 0:
+        predict_day_type = "0のつく日"
+    elif predict_day_dt.day % 10 == 5:
+        predict_day_type = "5のつく日"
+    else:
+        predict_day_type = "通常営業日"
     
     # 特定日用と通常日用のすべての予測パラメータを個別にロード
     params_default_special = analyzer.load_prediction_parameters("default_special")
@@ -199,11 +215,7 @@ def generate_dashboard():
     if day_stats is None:
         day_stats = pd.DataFrame()
         
-    # 4. 次回の期待台予測 (3モデル分個別に取得)
-    predict_date = get_next_special_date(end_date)
-    predict_day_dt = datetime.strptime(predict_date, "%Y-%m-%d")
-    predict_day_type = "0のつく日" if predict_day_dt.day % 10 == 0 else "5のつく日"
-    
+    # 4. 次回の期待台予測 (4モデル分個別に取得)
     predictions_default = analyzer.predict_next_hot_slots(predict_date, model_type="default")
     if predictions_default is None:
         predictions_default = pd.DataFrame()

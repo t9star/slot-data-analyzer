@@ -875,73 +875,149 @@ def eval_parameters(target_dates, params, model_type="default"):
 
 def tune_prediction_parameters():
     """
-    過去の特定日データを使って、3つの予測モデル（default / raise / trend）それぞれ個別に
+    過去の特定日・通常日データを使って、4つの予測モデル（default / raise / trend / weekday）それぞれ個別に
     最も的中精度が高くなる予測重みパラメータを自動探索（グリッドサーチ）して保存する
     """
     conn = get_connection()
     cursor = conn.cursor()
+    
+    # 特定日データの取得
     cursor.execute("""
         SELECT date FROM daily_summary 
         WHERE strftime('%d', date) LIKE '%0' OR strftime('%d', date) LIKE '%5'
         ORDER BY date DESC LIMIT 5
     """)
-    target_dates = [row[0] for row in cursor.fetchall()]
+    target_dates_special = [row[0] for row in cursor.fetchall()]
+    
+    # 通常日データの取得
+    cursor.execute("""
+        SELECT date FROM daily_summary 
+        WHERE NOT (strftime('%d', date) LIKE '%0' OR strftime('%d', date) LIKE '%5')
+        ORDER BY date DESC LIMIT 5
+    """)
+    target_dates_normal = [row[0] for row in cursor.fetchall()]
     conn.close()
     
-    if len(target_dates) < 2:
-        return {"status": "error", "message": "学習に必要な過去の特定日データが不足しています（最低2回分必要）。"}
+    if len(target_dates_special) < 2 and len(target_dates_normal) < 2:
+        return {"status": "error", "message": "学習に必要な過去のデータが不足しています。"}
         
-    # 各モデルのパラメータ探索候補（グリッド）定義
-    model_grids = {
-        'default': {
-            'slot_weights': [0.2, 0.4],
-            'machine_weights': [0.2, 0.4],
-            'matching_bonuses': [150.0, 300.0],
-            'zoro_bonuses': [50.0, 100.0],
-            'raise_bonuses': [50.0, 120.0]
+    # 各モデルの探索候補定義
+    model_configs = {
+        'default_special': {
+            'target_dates': target_dates_special,
+            'grid': {
+                'weight_slot_avg': [0.3, 0.4, 0.5],
+                'weight_machine_avg': [0.2, 0.3],
+                'bonus_matching_digit': [150.0, 250.0],
+                'bonus_zoro_digit': [50.0, 80.0],
+                'bonus_raise_target': [80.0, 120.0],
+                'bonus_weekday_pattern': [0.0]
+            }
         },
-        'raise': {
-            'slot_weights': [0.1, 0.3],
-            'machine_weights': [0.1, 0.3],
-            'matching_bonuses': [50.0, 100.0],
-            'zoro_bonuses': [30.0, 60.0],
-            'raise_bonuses': [250.0, 400.0]
+        'default_normal': {
+            'target_dates': target_dates_normal,
+            'grid': {
+                'weight_slot_avg': [0.3, 0.4],
+                'weight_machine_avg': [0.2, 0.3],
+                'bonus_matching_digit': [20.0, 40.0],
+                'bonus_zoro_digit': [10.0, 20.0],
+                'bonus_raise_target': [100.0, 150.0],
+                'bonus_weekday_pattern': [80.0, 120.0]
+            }
         },
-        'trend': {
-            'slot_weights': [0.1, 0.3],
-            'machine_weights': [0.1, 0.3],
-            'matching_bonuses': [400.0, 600.0],
-            'zoro_bonuses': [100.0, 200.0],
-            'raise_bonuses': [30.0, 80.0]
+        'raise_special': {
+            'target_dates': target_dates_special,
+            'grid': {
+                'weight_slot_avg': [0.2, 0.3],
+                'weight_machine_avg': [0.1, 0.2],
+                'bonus_matching_digit': [50.0, 100.0],
+                'bonus_zoro_digit': [30.0, 50.0],
+                'bonus_raise_target': [250.0, 350.0],
+                'bonus_weekday_pattern': [0.0]
+            }
+        },
+        'raise_normal': {
+            'target_dates': target_dates_normal,
+            'grid': {
+                'weight_slot_avg': [0.2, 0.3],
+                'weight_machine_avg': [0.1, 0.2],
+                'bonus_matching_digit': [10.0, 20.0],
+                'bonus_zoro_digit': [5.0, 10.0],
+                'bonus_raise_target': [300.0, 400.0],
+                'bonus_weekday_pattern': [60.0, 100.0]
+            }
+        },
+        'trend_special': {
+            'target_dates': target_dates_special,
+            'grid': {
+                'weight_slot_avg': [0.2, 0.3],
+                'weight_machine_avg': [0.2, 0.3],
+                'bonus_matching_digit': [350.0, 500.0],
+                'bonus_zoro_digit': [100.0, 180.0],
+                'bonus_raise_target': [30.0, 70.0],
+                'bonus_weekday_pattern': [0.0]
+            }
+        },
+        'trend_normal': {
+            'target_dates': target_dates_normal,
+            'grid': {
+                'weight_slot_avg': [0.2, 0.3],
+                'weight_machine_avg': [0.2, 0.3],
+                'bonus_matching_digit': [80.0, 120.0],
+                'bonus_zoro_digit': [20.0, 40.0],
+                'bonus_raise_target': [60.0, 100.0],
+                'bonus_weekday_pattern': [30.0, 70.0]
+            }
+        },
+        'weekday_special': {
+            'target_dates': target_dates_special,
+            'grid': {
+                'weight_slot_avg': [0.2, 0.3],
+                'weight_machine_avg': [0.1, 0.2],
+                'bonus_matching_digit': [100.0, 180.0],
+                'bonus_zoro_digit': [30.0, 60.0],
+                'bonus_raise_target': [60.0, 100.0],
+                'bonus_weekday_pattern': [150.0, 250.0]
+            }
+        },
+        'weekday_normal': {
+            'target_dates': target_dates_normal,
+            'grid': {
+                'weight_slot_avg': [0.2, 0.3],
+                'weight_machine_avg': [0.1, 0.2],
+                'bonus_matching_digit': [10.0, 30.0],
+                'bonus_zoro_digit': [5.0, 15.0],
+                'bonus_raise_target': [60.0, 100.0],
+                'bonus_weekday_pattern': [250.0, 350.0]
+            }
         }
     }
     
     results = {}
     
-    for m_type, grid in model_grids.items():
+    for m_type, conf in model_configs.items():
+        dates = conf['target_dates']
+        if not dates:
+            continue
+            
+        grid = conf['grid']
         best_score = -999999
         best_params = None
         
         current_params = load_prediction_parameters(m_type)
-        before_avg_diff = eval_parameters(target_dates, current_params, m_type)
+        before_avg_diff = eval_parameters(dates, current_params, m_type)
         
-        for w_slot in grid['slot_weights']:
-            for w_mach in grid['machine_weights']:
-                for b_match in grid['matching_bonuses']:
-                    for b_zoro in grid['zoro_bonuses']:
-                        for b_raise in grid['raise_bonuses']:
-                            candidate = {
-                                'weight_slot_avg': w_slot,
-                                'weight_machine_avg': w_mach,
-                                'bonus_matching_digit': b_match,
-                                'bonus_zoro_digit': b_zoro,
-                                'bonus_raise_target': b_raise
-                            }
-                            score = eval_parameters(target_dates, candidate, m_type)
-                            if score > best_score:
-                                best_score = score
-                                best_params = candidate
-                                
+        import itertools
+        param_names = list(grid.keys())
+        param_values = list(grid.values())
+        
+        for combination in itertools.product(*param_values):
+            candidate = dict(zip(param_names, combination))
+            score = eval_parameters(dates, candidate, m_type)
+            if score > best_score:
+                best_score = score
+                best_params = candidate
+                
         if best_params:
             conn = get_connection()
             cursor = conn.cursor()

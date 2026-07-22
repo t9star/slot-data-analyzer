@@ -1413,7 +1413,7 @@
                                     {% else %}
                                         <span style="color: var(--danger-color); font-weight:bold; font-size:0.85rem; margin-right:15px;">⚠️ ガセ傾向</span>
                                     {% endif %}
-                                    <button onclick="deleteRecommendation({{ r.id }})" style="background: rgba(235, 94, 85, 0.1); border: 1px solid rgba(235, 94, 85, 0.3); color: var(--danger-color); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">削除</button>
+                                    <button onclick="deleteRecommendation({{ r.id }}, this)" style="background: rgba(235, 94, 85, 0.1); border: 1px solid rgba(235, 94, 85, 0.3); color: var(--danger-color); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">削除</button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -2172,8 +2172,14 @@
         }
 
         // オススメ機種の削除
-        function deleteRecommendation(id) {
+        function deleteRecommendation(id, btnEl = null) {
             if (!confirm('この検証データを削除しますか？')) return;
+            
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.textContent = '削除中...';
+            }
+            showToast('⏳ データを削除しています...', 'loading', 0);
             
             fetch('/api/recommend/delete', {
                 method: 'POST',
@@ -2183,14 +2189,23 @@
             .then(res => res.json())
             .then(res => {
                 if (res.error) {
-                    alert('削除に失敗しました: ' + res.error);
+                    showToast('❌ 削除に失敗しました: ' + res.error, 'error');
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.textContent = '削除';
+                    }
                 } else {
-                    window.location.reload();
+                    showToast('✅ 削除が完了しました。ページを再読み込みします...', 'success', 2000);
+                    setTimeout(() => { window.location.reload(); }, 1000);
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert('削除リクエストに失敗しました。');
+                showToast('❌ 削除リクエストに失敗しました。ネットワーク接続を確認してください。', 'error');
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.textContent = '削除';
+                }
             });
         }
 

@@ -81,7 +81,7 @@ def fetch_report_list():
     店舗のタグページからレポートのURLと日付のリストを取得する
     """
     print(f"Fetching report list from: {TAG_URL}")
-    response = requests.get(TAG_URL, headers=HEADERS, timeout=10)
+    response = requests.get(TAG_URL, headers=HEADERS, timeout=20)
     response.raise_for_status()
     
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -127,7 +127,7 @@ def scrape_detail_page(url, display_date):
     all_data_url = f"{url}?kishu=all"
     print(f"Scraping detail page: {all_data_url}")
     
-    response = requests.get(all_data_url, headers=HEADERS, timeout=10)
+    response = requests.get(all_data_url, headers=HEADERS, timeout=20)
     response.raise_for_status()
     
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -590,73 +590,68 @@ def run_goraggio_scraper(limit=450):
     print(f"Starting slot data retrieval for {total_units} machines...")
     
     processed_count = 0
-    slot_details_to_insert = []
-    
-    # データベース書き込み用
     conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    for i in range(total_units):
-        unit_id = unit_ids[i]
-        machine_name = machines[unit_id]
-        
-        percent = int(((i + 1) / total_units) * 100)
-        update_progress(
-            "running",
-            i + 1,
-            total_units,
-            f"詳細データを取得中 ({i + 1}/{total_units}台目): 台番号 {unit_id} ({machine_name})"
-        )
-        
-        detail_url = f"https://daidata.goraggio.com/{store_id}/detail?unit={unit_id}"
-        
-        try:
-            html = run_curl([
-                "-s", "-L",
-                "-A", ua,
-                "-b", cookie_file,
-                detail_url
-            ])
-            
-            daily_data = parse_goraggio_detail(html)
-            
-            for date_str, data in daily_data.items():
-                diff = data.get('diff', 0)
-                games = data.get('games', 0)
-                bb = data.get('bb', 0)
-                rb = data.get('rb', 0)
-                art = data.get('art', 0)
-                winning = 1 if diff > 0 else 0
-                last_digit = unit_id % 10
-                
-                # slot_details テーブルに保存
-                cursor.execute("""
-                INSERT OR REPLACE INTO slot_details (date, slot_number, machine_name, diff, games, winning, last_digit)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (date_str, unit_id, machine_name, diff, games, winning, last_digit))
-                
-            processed_count += 1
-            
-            # 定期的にコミットして進捗を保存
-            if processed_count % 10 == 0:
-                conn.commit()
-                
-            # サーバー負荷対策のためディレイを入れる (0.5秒〜1秒程度)
-            time.sleep(0.6)
-            
-        except Exception as e:
-            print(f"Error processing unit {unit_id}: {e}")
-            time.sleep(2)
-            
     try:
-        # i. 日次サマリーと機種別統計の再計算とUPSERT
-        # goraggioから取得した日付のリストを取得
+        cursor = conn.cursor()
+        
+        for i in range(total_units):
+            unit_id = unit_ids[i]
+            machine_name = machines[unit_id]
+            
+            percent = int(((i + 1) / total_units) * 100)
+            update_progress(
+                "running",
+                i + 1,
+                total_units,
+                f"詳細データを取得中 ({i + 1}/{total_units}台目): 台番号 {unit_id} ({machine_name})"
+            )
+            
+            detail_url = f"https://daidata.goraggio.com/{store_id}/detail?unit={unit_id}"
+            
+            try:
+                html = run_curl([
+                    "-s", "-L",
+                    "-A", ua,
+                    "-b", cookie_file,
+                    detail_url
+                ])
+                
+                daily_data = parse_goraggio_detail(html)
+                
+                for date_str, data in daily_data.items():
+                    diff = data.get('diff', 0)
+                    games = data.get('games', 0)
+                    bb = data.get('bb', 0)
+                    rb = data.get('rb', 0)
+                    art = data.get('art', 0)
+                    winning = 1 if diff > 0 else 0
+                    last_digit = unit_id % 10
+                    
+                    # slot_details テーブルに保存
+                    cursor.execute("""
+                    INSERT OR REPLACE INTO slot_details (date, slot_number, machine_name, diff, games, winning, last_digit)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (date_str, unit_id, machine_name, diff, games, winning, last_digit))
+                    
+                processed_count += 1
+                
+                # 定期的にコミットして進捗を保存
+                if processed_count % 10 == 0:
+                    conn.commit()
+                    
+                # サーバー負荷対策のためディレイを入れる (0.5秒〜1秒程度)
+                time.sleep(0.6)
+                
+            except Exception as e:
+                print(f"Error processing unit {unit_id}: {e}")
+                time.sleep(2)
+                
+        # 日次サマリーと機種別統計の再計算とUPSERT
         cursor.execute("SELECT DISTINCT date FROM slot_details WHERE date >= date('now', '-10 day')")
         recent_dates = [row[0] for row in cursor.fetchall()]
         
         print("Re-calculating daily summaries and machine stats for updated dates...")
         for date_str in recent_dates:
-            # 1. 日次サマリーの集計
             cursor.execute("""
             SELECT COUNT(*), SUM(diff), SUM(winning)
             FROM slot_details WHERE date = ?
@@ -670,7 +665,6 @@ def run_goraggio_scraper(limit=450):
                 VALUES (?, ?, ?, ?, ?, ?)
                 """, (date_str, count, t_diff, avg_diff, w_count, w_rate))
                 
-            # 2. 機種別サマリーの集計
             cursor.execute("""
             SELECT machine_name, COUNT(*), SUM(diff), SUM(winning)
             FROM slot_details WHERE date = ?
@@ -688,18 +682,14 @@ def run_goraggio_scraper(limit=450):
                 
         conn.commit()
         print("Re-calculation completed.")
-    except Exception as e:
-        print(f"Error re-calculating stats: {e}")
-        
-    conn.close()
-    
-    # 一時ファイルの削除
-    if os.path.exists(cookie_file):
-        try:
-            os.remove(cookie_file)
-        except Exception:
-            pass
-            
+    finally:
+        conn.close()
+        if os.path.exists(cookie_file):
+            try:
+                os.remove(cookie_file)
+            except Exception:
+                pass
+                
     update_progress("done", processed_count, total_units, f"通常営業日データの回収完了！ {processed_count}台のスロット詳細データを過去8日分回収しました。")
 
 if __name__ == "__main__":
