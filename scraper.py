@@ -330,15 +330,18 @@ def run_scraper(limit=15):
     update_progress("done", processed_count, total_to_process, f"データ更新完了！ 新しく {processed_count} 日分のデータを取得しました。")
 
 import subprocess
+import sys
 
 def run_curl(args):
     """
     WAFブロックを回避するため、システムの curl.exe または curl を使ってリクエストを送信する
     """
-    # Windows SchannelのSSL証明書失効リスト取得エラーやSSL警告を回避するためのオプションを追加
-    # --ssl-no-revoke: 証明書失効チェックを回避 (Windows特有)
+    # Windows SchannelのSSL証明書失効リスト取得エラーやSSL警告を回避するためのオプション
+    # --ssl-no-revoke: 証明書失効チェックを回避 (Windows特有。Linuxのcurlでは未対応でエラーになるためWindowsのみ付与)
     # -k: 証明書エラーを無視
-    additional_opts = ["--ssl-no-revoke", "-k"]
+    additional_opts = ["-k"]
+    if sys.platform.startswith("win"):
+        additional_opts.append("--ssl-no-revoke")
     
     cleaned_args = []
     for opt in additional_opts:
@@ -346,7 +349,10 @@ def run_curl(args):
             cleaned_args.append(opt)
     cleaned_args.extend(args)
     
-    for executable in ["curl.exe", "curl"]:
+    # 実行ファイルの優先順位 (Windowsはcurl.exe優先、Linux/Macはcurl)
+    executables = ["curl.exe", "curl"] if sys.platform.startswith("win") else ["curl", "curl.exe"]
+    
+    for executable in executables:
         cmd = [executable] + cleaned_args
         try:
             result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)

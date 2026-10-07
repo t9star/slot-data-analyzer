@@ -76,8 +76,8 @@ def push_to_github():
         print("[GitHub Push] インターネット公開用データのアップロードを開始します...")
         git_path = r"C:\Program Files\Git\cmd\git.exe"
         
-        # 1. git add index.html
-        subprocess.run([git_path, "add", "index.html"], check=True)
+        # 1. git add index.html, slot_data.db, progress.json
+        subprocess.run([git_path, "add", "index.html", "slot_data.db", "progress.json"], check=True)
         
         # 2. git commit -m "auto: Update dashboard data"
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

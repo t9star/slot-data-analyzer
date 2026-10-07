@@ -46,10 +46,15 @@ jobs:
         conn.close()
         "
 
-    - name: Run Scraper (Fetch Last 8 Days of Goraggio Data)
+    - name: Run Special Day Scraper (Fetch Min-Repo Data)
+      run: |
+        # 特定日（みんレポ）の新着レポートを回収
+        python -c "import scraper; scraper.run_scraper(limit=5)" || true
+
+    - name: Run Regular Day Scraper (Fetch Last 8 Days of Goraggio Data)
       run: |
         # 通常営業日の直近8日分のデータを回収
-        python -c "import scraper; scraper.run_goraggio_scraper(limit=8)"
+        python -c "import scraper; scraper.run_goraggio_scraper(limit=8)" || true
 
     - name: Regenerate Dashboard
       run: |
