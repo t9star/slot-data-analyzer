@@ -1,7 +1,7 @@
 {
-  "status": "running",
-  "current": 450,
-  "total": 450,
-  "message": "ダッシュボードを再生成しています...",
-  "updated_at": "2026-10-20 20:27:29"
+  "status": "done",
+  "current": 409,
+  "total": 409,
+  "message": "通常営業日データの回収が完了しました！",
+  "updated_at": "2026-10-20 21:10:32"
 }
