@@ -373,6 +373,36 @@
             transform: none;
         }
 
+        /* 自動同期バッジ */
+        .auto-sync-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(0, 230, 118, 0.1);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+            color: #00e676;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #00e676;
+            box-shadow: 0 0 8px #00e676;
+            animation: pulse-dot 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            50% { transform: scale(1.25); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.7; }
+        }
+
         .loader-text {
             color: var(--accent-color);
             font-size: 0.9rem;
@@ -658,12 +688,27 @@
                 <p style="color: var(--text-muted); margin-top: 5px;">データ収集元: みんレポ ＆ 台データオンライン</p>
             </div>
             <div class="header-meta">
-                <div class="update-btn-container" style="margin-bottom: 10px; justify-content: flex-end;">
+                <div class="update-btn-container" style="margin-bottom: 10px; justify-content: flex-end; flex-wrap: wrap; gap: 8px;">
                     <span id="update-status" class="loader-text" style="display: none;"></span>
-                    <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()">データを手動取得</button>
-                    <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="background: var(--accent-gradient); margin-left: 10px;">通常営業日データを回収 (直近8日分)</button>
+                    <!-- ローカル環境用の手動取得ボタン（ローカル判定時のみ表示） -->
+                    <button id="btn-update-data" class="btn-update" onclick="triggerUpdate()" style="display: none;">データを手動取得</button>
+                    <button id="btn-update-goraggio" class="btn-update" onclick="triggerGoraggioUpdate()" style="display: none; background: var(--accent-gradient);">通常営業日データを回収 (直近8日分)</button>
+                    
+                    <!-- Web公開版（GitHub Pages）用のボタン群 -->
+                    <div id="web-header-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <div class="auto-sync-badge" title="自宅PCのタスクスケジューラにより毎日自動で最新データが回収・反映されます">
+                            <span class="sync-dot"></span>
+                            <span>毎日 23:25 自動更新</span>
+                        </div>
+                        <button id="btn-refresh-cache" class="btn-update" onclick="refreshDashboard()" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #000; font-weight: 700; padding: 8px 16px; font-size: 0.85rem;">
+                            🔄 最新データを再読込
+                        </button>
+                        <button id="btn-show-sync-info" class="btn-update" onclick="showSyncInfoModal()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: #ccc; padding: 8px 12px; font-size: 0.85rem;">
+                            ℹ️ 更新の仕組み
+                        </button>
+                    </div>
                 </div>
-                <p>ダッシュボード生成日時: 2026-10-22 19:10:19</p>
+                <p>ダッシュボード生成日時: 2026-10-22 19:33:23</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-10-22</p>
             </div>
         </header>
@@ -4543,7 +4588,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-10-17</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">1581 - 1583</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">ﾈｵｱｲﾑｼﾞｬｸﾞﾗｰEX / SBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV-30</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">SBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV-30 / ﾈｵｱｲﾑｼﾞｬｸﾞﾗｰEX</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +5,870枚
@@ -5279,6 +5324,47 @@
             ...darkThemeLayout,
             yaxis: { ...darkThemeLayout.yaxis, title: '平均差枚(枚)' }
         });
+
+        // 画面のキャッシュクリア強制再読み込み（GitHub Pages等のキャッシュ対策）
+        function refreshDashboard() {
+            showToast('🔄 キャッシュをクリアして最新データを再取得しています...', 'info', 2000);
+            setTimeout(() => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('t', Date.now());
+                window.location.href = url.toString();
+            }, 400);
+        }
+
+        // 更新の仕組み案内モーダル
+        function showSyncInfoModal() {
+            let overlay = document.getElementById('sync-info-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'sync-info-overlay';
+                overlay.innerHTML = `
+                    <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+                        <div style="background:#111;border:2px solid var(--primary-color);border-radius:14px;padding:24px;max-width:480px;width:100%;box-shadow:0 0 30px rgba(0,186,242,0.3);">
+                            <div style="color:#fff;font-size:1.1rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                                <span>⏰</span> データ更新の仕組みについて
+                            </div>
+                            <div style="color:var(--text-muted);font-size:0.85rem;line-height:1.7;margin-bottom:18px;">
+                                <b style="color:#fff;">① 自動更新について</b><br>
+                                パチンコ店の営業終了後、<b>毎晩 23:25</b> に自宅PCのタスクスケジューラが自動で全台データを回収し、このWebダッシュボードへアップロードします。<br>
+                                （夜間にPCの電源が切れていた場合でも、翌朝PC起動時に自動で未実行分を実行します）<br><br>
+                                <b style="color:#fff;">② 今すぐ手動で最新化したい場合</b><br>
+                                自宅PCでプロジェクトフォルダ内の <code style="background:#222;padding:2px 6px;border-radius:4px;color:var(--accent-color);">run_daily_update.bat</code> をダブルクリックすると、即座に全409台の最新回収＆ダッシュボード再公開が実行されます。<br><br>
+                                <b style="color:#fff;">③ 画面の反映確認</b><br>
+                                右上の「🔄 最新データを再読込」を押すと、ブラウザキャッシュを迂回して常に最新の公開データが表示されます。
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="document.getElementById('sync-info-overlay').style.display='none'" style="padding:8px 22px;border-radius:8px;border:none;background:var(--primary-gradient);color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem;">閉じる</button>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = 'block';
+        }
 
         // 3. データ更新 API 連携
         function triggerUpdate() {
@@ -6337,38 +6423,24 @@
         function initEnvironmentCheck() {
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
-            if (!isLocal) {
-                const btnTune = document.getElementById('btn-tune-ai');
-                const btnUpdate = document.getElementById('btn-update-data');
-                const btnGoraggio = document.getElementById('btn-update-goraggio');
+            const btnUpdate = document.getElementById('btn-update-data');
+            const btnGoraggio = document.getElementById('btn-update-goraggio');
+            const webActions = document.getElementById('web-header-actions');
+            const btnTune = document.getElementById('btn-tune-ai');
+            
+            if (isLocal) {
+                // ローカル起動時: 直接スクレイピングボタンを表示
+                if (btnUpdate) btnUpdate.style.display = 'inline-block';
+                if (btnGoraggio) btnGoraggio.style.display = 'inline-block';
+                if (webActions) webActions.style.display = 'none';
+            } else {
+                // Web公開（GitHub Pages）時: 最新再読込＆同期案内を表示（失敗するクラウドボタンは非表示）
+                if (btnUpdate) btnUpdate.style.display = 'none';
+                if (btnGoraggio) btnGoraggio.style.display = 'none';
+                if (webActions) webActions.style.display = 'flex';
                 
                 if (btnTune) {
-                    btnTune.disabled = false;
-                    btnTune.style.background = 'linear-gradient(135deg, var(--success-color) 0%, #1c7e4c 100%)';
-                    btnTune.style.borderColor = 'var(--success-color)';
-                    btnTune.style.color = '#fff';
-                    btnTune.style.cursor = 'pointer';
-                    btnTune.title = 'GitHub Actionsを遠隔起動してクラウド上でAI学習を実行します';
-                    btnTune.textContent = '🌐 オンラインAI学習 (クラウド)';
-                }
-                if (btnUpdate) {
-                    btnUpdate.disabled = true;
-                    btnUpdate.style.background = '#222';
-                    btnUpdate.style.backgroundImage = 'none';
-                    btnUpdate.style.borderColor = '#444';
-                    btnUpdate.style.color = 'var(--text-muted)';
-                    btnUpdate.style.cursor = 'not-allowed';
-                    btnUpdate.title = '全履歴の一括取得は自宅PC（ローカル起動時）のみ実行可能です';
-                    btnUpdate.textContent = '🔒 一括再取得 (ローカル専用)';
-                }
-                if (btnGoraggio) {
-                    btnGoraggio.disabled = false;
-                    btnGoraggio.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, #177090 100%)';
-                    btnGoraggio.style.borderColor = 'var(--primary-color)';
-                    btnGoraggio.style.color = '#fff';
-                    btnGoraggio.style.cursor = 'pointer';
-                    btnGoraggio.title = 'GitHub Actionsを遠隔起動して通常営業日データを回収します';
-                    btnGoraggio.textContent = '🌐 通常データ回収 (クラウド)';
+                    btnTune.title = 'AI学習は自宅PC環境（start.bat起動時）で瞬時に実行可能です';
                 }
             }
         }
