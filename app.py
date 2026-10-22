@@ -30,7 +30,7 @@ def schedule_worker():
                 progress = get_progress()
                 if progress.get("status") != "running":
                     print(f"[Scheduler] {now.strftime('%Y-%m-%d %H:%M:%S')} - 定期データ回収を開始します。")
-                    t = threading.Thread(target=async_goraggio_task, args=(8,))
+                    t = threading.Thread(target=async_goraggio_task, args=(450,))
                     t.daemon = True
                     t.start()
                     last_run_date = now.date()
@@ -69,13 +69,20 @@ def set_progress(status, current, total, message):
 
 def push_to_github():
     """
-    更新された index.html を GitHub に自動プッシュする (Git絶対パスルール適用)
-    リモートに新しいコミットがある場合は rebase で吸収してからプッシュする
+    更新された index.html と slot_data.db を GitHub に自動プッシュする (Git絶対パスルール適用)
+    リモートに新しいコミットがある場合は -X ours マージでローカル最新を優先採用してプッシュする
     """
+    git_path = r"C:\Program Files\Git\cmd\git.exe"
     try:
         print("[GitHub Push] インターネット公開用データのアップロードを開始します...")
-        git_path = r"C:\Program Files\Git\cmd\git.exe"
         
+        # 0. 過去の未完了rebaseやmergeがあれば念のためabort
+        try:
+            subprocess.run([git_path, "rebase", "--abort"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run([git_path, "merge", "--abort"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
         # 1. git add index.html, slot_data.db, progress.json
         subprocess.run([git_path, "add", "index.html", "slot_data.db", "progress.json"], check=True)
         
@@ -83,26 +90,44 @@ def push_to_github():
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         subprocess.run([git_path, "commit", "--allow-empty", "-m", f"auto: Update dashboard data {now_str}"], check=True)
         
-        # 3. git pull --rebase + push（リモートに先行コミットがある場合を考慮してリトライ）
+        # 3. リモートとマージしてpush（バイナリファイル競合防止のため -X ours を採用）
         pushed = False
         for attempt in range(1, 4):
             try:
-                subprocess.run([git_path, "pull", "--rebase", "origin", "master"], check=True)
+                subprocess.run([git_path, "fetch", "origin", "master"], check=True)
+                merge_res = subprocess.run([git_path, "merge", "-X", "ours", "origin/master", "--no-edit"], capture_output=True, text=True)
+                if merge_res.returncode != 0:
+                    print(f"[GitHub Push] マージ警告: {merge_res.stderr}")
+                    subprocess.run([git_path, "checkout", "--ours", "index.html", "slot_data.db", "progress.json"], check=False)
+                    subprocess.run([git_path, "add", "index.html", "slot_data.db", "progress.json"], check=False)
+                    subprocess.run([git_path, "commit", "--allow-empty", "-m", f"merge: Resolve conflict using local latest {now_str}"], check=False)
+
                 subprocess.run([git_path, "push", "origin", "master"], check=True)
                 pushed = True
                 break
             except subprocess.CalledProcessError as retry_err:
                 print(f"[GitHub Push] プッシュ失敗 (試行 {attempt}/3): {retry_err}")
+                try:
+                    subprocess.run([git_path, "merge", "--abort"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except Exception:
+                    pass
                 if attempt < 3:
                     import time
-                    time.sleep(5)
+                    time.sleep(3)
         
         if pushed:
             print("[GitHub Push] アップロードが正常に完了しました！")
+            return True
         else:
-            print("[GitHub Push] 3回リトライしましたが失敗しました。次回の更新時に自動的に再試行されます。")
+            print("[GitHub Push] リモートプッシュは次回に延期されました（ローカルデータは正常に保存されています）。")
+            return False
     except Exception as e:
         print(f"[GitHub Push] エラーが発生しました: {str(e)}")
+        try:
+            subprocess.run([git_path, "merge", "--abort"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+        return False
 
 def async_update_task(limit):
     """
@@ -111,7 +136,6 @@ def async_update_task(limit):
     with LOCK:
         try:
             # 1. スクレイパー実行（バックフィルモード）
-            # 新しい日付の取得と、過去データ最大 limit 日分を遡って収集
             scraper.run_scraper(limit=limit)
             
             # 2. ダッシュボードの再生成
@@ -140,9 +164,12 @@ def async_goraggio_task(limit):
             dashboard_generator.generate_dashboard()
             
             # 3. GitHubへ自動アップロード (Pages更新)
-            push_to_github()
+            pushed = push_to_github()
             
-            set_progress("done", limit, limit, "通常営業日のデータ回収が完了しました！")
+            if pushed:
+                set_progress("done", limit, limit, "通常営業日のデータ回収が完了しました！")
+            else:
+                set_progress("done", limit, limit, "通常営業日のデータ回収が完了しました（GitHub反映は次回再試行されます）。")
         except Exception as e:
             print(f"Error in goraggio background update: {e}")
             set_progress("error", 0, 0, f"データ回収中にエラーが発生しました: {e}")

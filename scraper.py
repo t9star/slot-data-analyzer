@@ -472,12 +472,14 @@ def fetch_goraggio_machines(store_id):
 def parse_goraggio_detail(html):
     """
     台ごとの詳細HTMLを解析し、過去8日分の日付ごとの「差枚数」「BB」「RB」「ART」「総ゲーム数」を取得する
+    稼働がなかった日（0回転）も漏れなく抽出して欠落を防ぐ
     """
     soup = BeautifulSoup(html, 'html.parser')
     daily_data = {}
     
     # 1. 各日のスランプグラフ(差枚数)を JS から抽出
     scripts = soup.find_all('script')
+    found_dates = set()
     for script in scripts:
         content = script.string or ''
         if 'DailyCanvas' in content and 'min' in content:
@@ -486,6 +488,9 @@ def parse_goraggio_detail(html):
             if not date_match:
                 continue
             date_str = date_match.group(1)
+            found_dates.add(date_str)
+            if date_str not in daily_data:
+                daily_data[date_str] = {'diff': 0, 'bb': 0, 'rb': 0, 'art': 0, 'games': 0}
             
             # 最終差枚数の抽出 (jqplot の最後の座標のY値)
             array_match = re.search(r'jqplot\(\[\s*\[(.*?)\]\s*\]', content, re.DOTALL)
@@ -494,31 +499,29 @@ def parse_goraggio_detail(html):
                 pairs = re.findall(r'\["[^"]+",\s*(-?\d+)\]', array_match.group(1))
                 if pairs:
                     final_diff = int(pairs[-1])
-                    if date_str not in daily_data:
-                        daily_data[date_str] = {}
                     daily_data[date_str]['diff'] = final_diff
                     
-    # 取得できた日付を古い順から新しい順にソート
-    date_list = sorted(list(daily_data.keys()))
-    if not date_list:
-        return {}
-        
-    # 2. 過去履歴テーブルから BB/RB/ART/ゲーム数 を抽出
-    tables = soup.find_all('table')
-    
-    # date_list の最新日を基準とする
+    # 最新日を特定
     from datetime import datetime, timedelta
-    try:
-        latest_date = datetime.strptime(date_list[-1], "%Y-%m-%d")
-    except Exception:
+    date_list = sorted(list(found_dates))
+    if date_list:
+        try:
+            latest_date = datetime.strptime(date_list[-1], "%Y-%m-%d")
+        except Exception:
+            latest_date = datetime.now()
+    else:
         latest_date = datetime.now()
         
-    # テーブルは最大8日分 (0〜7日前)
-    # k日前 (k = 0..7)
+    # 直近8日分（0〜7日前）の日付キーを確実に初期化
     for k in range(8):
-        # カレンダー上の日付を算出
-        target_date = latest_date - timedelta(days=k)
-        target_date_str = target_date.strftime("%Y-%m-%d")
+        d_str = (latest_date - timedelta(days=k)).strftime("%Y-%m-%d")
+        if d_str not in daily_data:
+            daily_data[d_str] = {'diff': 0, 'bb': 0, 'rb': 0, 'art': 0, 'games': 0}
+
+    # 2. 過去履歴テーブルから BB/RB/ART/ゲーム数 を抽出
+    tables = soup.find_all('table')
+    for k in range(8):
+        target_date_str = (latest_date - timedelta(days=k)).strftime("%Y-%m-%d")
         
         # テーブルインデックスの算出
         bb_idx = 0 if k == 0 else (2 * k + 1)
@@ -527,39 +530,39 @@ def parse_goraggio_detail(html):
         if bb_idx >= len(tables) or games_idx >= len(tables):
             break
             
-        # target_date_str が daily_data に存在する(DailyCanvasから日付がとれている)場合のみ更新する
-        if target_date_str in daily_data:
-            bb_table = tables[bb_idx]
-            games_table = tables[games_idx]
-            
-            # 大当り回数の抽出 (BB, RB, ART)
-            tds = bb_table.find_all('td')
-            bb, rb, art = 0, 0, 0
-            if len(tds) >= 3:
-                try:
-                    bb = int(tds[0].get_text().strip())
-                    rb = int(tds[1].get_text().strip())
-                    art = int(tds[2].get_text().strip())
-                except ValueError:
-                    pass
+        bb_table = tables[bb_idx]
+        games_table = tables[games_idx]
+        
+        # 大当り回数の抽出 (BB, RB, ART)
+        tds = bb_table.find_all('td')
+        bb, rb, art = 0, 0, 0
+        if len(tds) >= 3:
+            try:
+                bb = int(tds[0].get_text().strip())
+                rb = int(tds[1].get_text().strip())
+                art = int(tds[2].get_text().strip())
+            except ValueError:
+                pass
+                
+        # 総回転数(ゲーム数)の抽出
+        games = 0
+        cells = games_table.find_all(['th', 'td'])
+        for idx, cell in enumerate(cells):
+            if '累計スタート' in cell.get_text():
+                if idx + 1 < len(cells):
+                    try:
+                        games_val = cells[idx + 1].get_text().strip().replace(',', '')
+                        games = int(games_val)
+                    except ValueError:
+                        pass
+                    break
                     
-            # 総回転数(ゲーム数)の抽出
-            games = 0
-            cells = games_table.find_all(['th', 'td'])
-            for idx, cell in enumerate(cells):
-                if '累計スタート' in cell.get_text():
-                    if idx + 1 < len(cells):
-                        try:
-                            games_val = cells[idx + 1].get_text().strip().replace(',', '')
-                            games = int(games_val)
-                        except ValueError:
-                            pass
-                        break
-                        
-            daily_data[target_date_str]['bb'] = bb
-            daily_data[target_date_str]['rb'] = rb
-            daily_data[target_date_str]['art'] = art
-            daily_data[target_date_str]['games'] = games
+        daily_data[target_date_str]['bb'] = bb
+        daily_data[target_date_str]['rb'] = rb
+        daily_data[target_date_str]['art'] = art
+        daily_data[target_date_str]['games'] = games
+        
+    return daily_data
     return daily_data
 
 def run_goraggio_scraper(limit=450):
@@ -696,7 +699,7 @@ def run_goraggio_scraper(limit=450):
             except Exception:
                 pass
                 
-    update_progress("done", processed_count, total_units, f"通常営業日データの回収完了！ {processed_count}台のスロット詳細データを過去8日分回収しました。")
+    update_progress("running", total_units, total_units, f"通常営業日データの回収完了（全{processed_count}台）。ダッシュボードを生成中...")
 
 if __name__ == "__main__":
     run_scraper(limit=15)
