@@ -135,36 +135,36 @@ def load_prediction_parameters(model_type="default"):
     """
     fallbacks = {
         'default_special': {
-            'weight_slot_avg': 0.4,
-            'weight_machine_avg': 0.3,
-            'bonus_matching_digit': 250.0,
-            'bonus_zoro_digit': 80.0,
-            'bonus_raise_target': 100.0,
+            'weight_slot_avg': 0.3,
+            'weight_machine_avg': 0.25,
+            'bonus_matching_digit': 220.0,
+            'bonus_zoro_digit': 60.0,
+            'bonus_raise_target': 250.0,
             'bonus_weekday_pattern': 0
         },
         'default_normal': {
-            'weight_slot_avg': 0.4,
-            'weight_machine_avg': 0.3,
-            'bonus_matching_digit': 30.0,
+            'weight_slot_avg': 0.3,
+            'weight_machine_avg': 0.25,
+            'bonus_matching_digit': 25.0,
             'bonus_zoro_digit': 10.0,
-            'bonus_raise_target': 120.0,
-            'bonus_weekday_pattern': 100.0
+            'bonus_raise_target': 280.0,
+            'bonus_weekday_pattern': 80.0
         },
         'raise_special': {
-            'weight_slot_avg': 0.3,
+            'weight_slot_avg': 0.25,
             'weight_machine_avg': 0.2,
             'bonus_matching_digit': 80.0,
             'bonus_zoro_digit': 40.0,
-            'bonus_raise_target': 300.0,
+            'bonus_raise_target': 380.0,
             'bonus_weekday_pattern': 0
         },
         'raise_normal': {
-            'weight_slot_avg': 0.3,
+            'weight_slot_avg': 0.25,
             'weight_machine_avg': 0.2,
             'bonus_matching_digit': 10.0,
             'bonus_zoro_digit': 5.0,
-            'bonus_raise_target': 350.0,
-            'bonus_weekday_pattern': 80.0
+            'bonus_raise_target': 420.0,
+            'bonus_weekday_pattern': 70.0
         },
         'trend_special': {
             'weight_slot_avg': 0.2,
@@ -276,6 +276,7 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     # 同一の台番号であっても、台移動や新台入替の前後でデータが混ざらないよう、
     # ターゲット日直前営業日の設置機種と同一のレコードのみに限定して集計する
     # 注: target_date_str より前のデータのみを対象とする (リーク防止)
+    # 【高精度化】平均回転数 avg_games を追加し、客・プロの粘り度合（稼働信頼度）を評価
     slot_query = """
     WITH latest_machines AS (
         SELECT slot_number, machine_name
@@ -288,6 +289,7 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
             sd.slot_number,
             sd.machine_name,
             sd.diff,
+            sd.games,
             sd.winning,
             ROW_NUMBER() OVER(PARTITION BY sd.slot_number ORDER BY sd.date DESC) as rn
         FROM slot_details sd
@@ -301,6 +303,7 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
         machine_name,
         COUNT(date) as recorded_days,
         AVG(diff) as avg_diff,
+        AVG(games) as avg_games,
         AVG(winning) as win_rate
     FROM filtered_slots
     WHERE rn <= 30
@@ -308,19 +311,19 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     """
     slots_df = pd.read_sql_query(slot_query, conn, params=(target_date_str, target_date_str))
     
-    # 2. 機種ごとの過去の強さ（平均差枚）
+    # 2. 機種ごとの過去の強さ（平均差枚）および設置台数（主力機種判定用）
     machine_query = """
     SELECT 
         machine_name,
-        AVG(average_diff) as machine_avg_diff
+        AVG(average_diff) as machine_avg_diff,
+        MAX(count) as machine_installed
     FROM machine_stats
     WHERE date < ?
     GROUP BY machine_name
     """
     machines_df = pd.read_sql_query(machine_query, conn, params=(target_date_str,))
     
-    # 3. 前日の最終差枚数（上げ狙い判定用）
-    # 直近の営業日データを取得
+    # 3. 前日の最終差枚数および回転数（ブン回し凹み上げ判定用）
     last_date_query = "SELECT MAX(date) FROM daily_summary WHERE date < ?"
     cursor = conn.cursor()
     cursor.execute(last_date_query, (target_date_str,))
@@ -331,7 +334,7 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
         last_day_query = "SELECT slot_number, diff as last_diff, games as last_games FROM slot_details WHERE date = ?"
         last_day_df = pd.read_sql_query(last_day_query, conn, params=(last_date,))
         
-    # 4. 直近3日間の累計差枚数（複数日凹み上げ狙い判定用）
+    # 4. 直近3日間の累計差枚数および累計ゲーム数（複数日凹みリバウンド判定用）
     recent_dates_query = "SELECT date FROM daily_summary WHERE date < ? ORDER BY date DESC LIMIT 3"
     cursor.execute(recent_dates_query, (target_date_str,))
     recent_dates = [row[0] for row in cursor.fetchall()]
@@ -340,7 +343,7 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     if recent_dates:
         placeholders = ','.join('?' for _ in recent_dates)
         sum_diff_query = f"""
-        SELECT slot_number, SUM(diff) as diff_3d 
+        SELECT slot_number, SUM(diff) as diff_3d, SUM(games) as games_3d
         FROM slot_details 
         WHERE date IN ({placeholders})
         GROUP BY slot_number
@@ -364,14 +367,18 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
         df = pd.merge(df, sum_diff_3d_df, on='slot_number', how='left')
     else:
         df['diff_3d'] = 0
+        df['games_3d'] = 0
         
     # 欠損値補完
     df['avg_diff'] = df['avg_diff'].fillna(0)
+    df['avg_games'] = df['avg_games'].fillna(0)
     df['win_rate'] = df['win_rate'].fillna(0)
     df['machine_avg_diff'] = df['machine_avg_diff'].fillna(0)
+    df['machine_installed'] = df['machine_installed'].fillna(1)
     df['last_diff'] = df['last_diff'].fillna(0)
     df['last_games'] = df['last_games'].fillna(-1)
     df['diff_3d'] = df['diff_3d'].fillna(0)
+    df['games_3d'] = df['games_3d'].fillna(0)
     
     # 末尾判定
     df['last_digit'] = df['slot_number'] % 10
@@ -380,6 +387,17 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     # 台・機種のベーススコア
     df['score'] = (df['avg_diff'] * params['weight_slot_avg']) + (df['machine_avg_diff'] * params['weight_machine_avg'])
     
+    # 【新機能】稼働信頼度ボーナス & 低稼働見切りペナルティ（客の粘り度を反映）
+    # 過去30営業日でしっかり回されている台（4000G以上）は客・プロが認める良台
+    df.loc[df['avg_games'] >= 4500, 'score'] += 100.0
+    df.loc[(df['avg_games'] >= 3000) & (df['avg_games'] < 4500), 'score'] += 50.0
+    # 逆に普段1500G未満しか動いていない台は低設定固定台の可能性が高いためペナルティ
+    df.loc[df['avg_games'] < 1500, 'score'] -= 80.0
+
+    # 【新機能】主力看板機種ボーナス（多台数設置機種に高設定配分が集中するホール傾向を反映）
+    df.loc[df['machine_installed'] >= 15, 'score'] += 70.0
+    df.loc[(df['machine_installed'] >= 8) & (df['machine_installed'] < 15), 'score'] += 35.0
+
     # 末尾ボーナス
     if matching_digit is not None:
         df.loc[df['last_digit'] == matching_digit, 'score'] += params['bonus_matching_digit']
@@ -388,11 +406,16 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     df['last_two'] = df['slot_number'] % 100
     df.loc[(df['last_two'] % 11 == 0) & (df['last_two'] != 0), 'score'] += params['bonus_zoro_digit']
     
-    # 上げ狙いボーナス（前日凹んでいて、過去平均が良い台）
-    # 条件A: 前日 -1500枚以下で、過去平均がプラスの台にボーナス
-    df.loc[(df['last_diff'] < -1500) & (df['avg_diff'] > 100), 'score'] += params['bonus_raise_target']
-    # 条件B: 3日間の累計差枚が -2500枚以下で、過去平均がプラス（>50）の台に追加ボーナス
-    df.loc[(df['diff_3d'] < -2500) & (df['avg_diff'] > 50), 'score'] += params['bonus_raise_target']
+    # 【大幅進化】新・上げ狙いボーナス（ブン回され凹み vs 放置凹みの峻別）
+    # 条件A: 前日3500G以上回されて -1500枚以下の台（設定師が翌日上げ直す黄金パターン: 翌日期待値+273枚）
+    df.loc[(df['last_games'] >= 3500) & (df['last_diff'] <= -1500), 'score'] += params['bonus_raise_target']
+    # 条件B: 前日2500G以上回されて -1000〜-1500枚の台（準上げ候補）
+    df.loc[(df['last_games'] >= 2500) & (df['last_diff'] <= -1000) & (df['last_diff'] > -1500), 'score'] += params['bonus_raise_target'] * 0.5
+    # 条件C: 3日間の累計で8000G以上回され、かつ累計 -2500枚以下のリバウンド台
+    df.loc[(df['games_3d'] >= 8000) & (df['diff_3d'] <= -2500), 'score'] += params['bonus_raise_target'] * 0.7
+    
+    # 【トラップ回避ペナルティ】前日2000G未満で凹んだ台は低設定放置の危険性が極めて高いため減点！
+    df.loc[(df['last_games'] >= 0) & (df['last_games'] < 2000) & (df['last_diff'] <= -1000), 'score'] -= 120.0
     
     # 曜日パターンボーナス（特定の曜日に強い台を加点）
     weekday_bonus = params.get('bonus_weekday_pattern', 0)
@@ -437,6 +460,7 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     df['score'] = df['score'].round(1)
     df['win_rate'] = (df['win_rate'] * 100).round(1)
     df['avg_diff'] = df['avg_diff'].round(0).astype(int)
+    df['avg_games'] = df['avg_games'].round(0).astype(int)
     df['machine_avg_diff'] = df['machine_avg_diff'].round(0).astype(int)
     df['last_diff'] = df['last_diff'].round(0).astype(int)
     df['last_games'] = df['last_games'].astype(int)
@@ -446,7 +470,7 @@ def predict_next_hot_slots(target_date_str, params=None, model_type="default"):
     return hot_slots[[
         'slot_number', 'machine_name', 'recorded_days', 
         'avg_diff', 'win_rate', 'machine_avg_diff', 
-        'last_diff', 'last_games', 'score'
+        'last_diff', 'last_games', 'avg_games', 'score'
     ]]
 
 def get_recent_trends():
