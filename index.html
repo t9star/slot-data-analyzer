@@ -761,7 +761,7 @@
                         </button>
                     </div>
                 </div>
-                <p>ダッシュボード生成日時: 2026-10-27 21:09:10</p>
+                <p>ダッシュボード生成日時: 2026-10-27 21:27:57</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-10-27</p>
             </div>
         </header>
@@ -3803,6 +3803,8 @@
                 <div class="kpi-value plus">9 枚</div>
             </div>
         </div>
+            </div>
+        </div>
 
         <!-- 全台データ一覧＆スランプグラフ検索セクション -->
         <div id="section-allslots" class="mobile-section">
@@ -4742,7 +4744,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-10-24</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">31 - 33</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">Lﾏｷﾞｱﾚｺｰﾄﾞ / Lﾊﾟﾁｽﾛ ﾗﾌﾞ嬢3 Wご指名</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">Lﾊﾟﾁｽﾛ ﾗﾌﾞ嬢3 Wご指名 / Lﾏｷﾞｱﾚｺｰﾄﾞ</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +11,963枚
@@ -4816,6 +4818,7 @@
                     </table>
                 </div>
             </div>
+        </div>
         </div>
 
         <!-- オススメ機種検証レポート -->
@@ -6053,6 +6056,11 @@
         // 初期ロード時に稼働中のステータスがあれば監視を引き継ぐ
         window.addEventListener('DOMContentLoaded', () => {
             renderCalendar();
+            
+            const isLocalEnv = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isLocalEnv) {
+                return; // Web公開版（GitHub Pages）ではローカル専用APIのポーリングを行わない
+            }
             
             // 曜日強調表示
             const todayNum = new Date().getDay();

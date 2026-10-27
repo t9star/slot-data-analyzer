@@ -1191,6 +1191,8 @@
                 <div class="kpi-value {% if avg_diff_normal > 0 %}plus{% endif %}">{{ avg_diff_normal }} 枚</div>
             </div>
         </div>
+            </div>
+        </div>
 
         <!-- 全台データ一覧＆スランプグラフ検索セクション -->
         <div id="section-allslots" class="mobile-section">
@@ -1528,6 +1530,7 @@
                     </table>
                 </div>
             </div>
+        </div>
         </div>
 
         <!-- オススメ機種検証レポート -->
@@ -2279,6 +2282,11 @@
         // 初期ロード時に稼働中のステータスがあれば監視を引き継ぐ
         window.addEventListener('DOMContentLoaded', () => {
             renderCalendar();
+            
+            const isLocalEnv = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isLocalEnv) {
+                return; // Web公開版（GitHub Pages）ではローカル専用APIのポーリングを行わない
+            }
             
             // 曜日強調表示
             const todayNum = new Date().getDay();
