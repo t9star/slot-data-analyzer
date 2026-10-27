@@ -682,7 +682,7 @@
 
         /* 全画面共通：タブで選択されたセクションのみを表示（縦長を解消） */
         .mobile-section {
-            display: none;
+            display: none !important;
         }
         .mobile-section.active-section {
             display: block !important;
@@ -721,9 +721,6 @@
         @media (min-width: 1200px) {
             body {
                 padding-bottom: 0 !important;
-            }
-            .mobile-section {
-                display: block !important;
             }
         }
         
@@ -3149,12 +3146,12 @@
             document.addEventListener('DOMContentLoaded', () => {
                 initEnvironmentCheck();
                 initAllSlotsViewer();
-                initMobileLayout(true); // 初回は強制実行
+                switchTab('predictions', false);
             });
         } else {
             initEnvironmentCheck();
             initAllSlotsViewer();
-            initMobileLayout(true); // 初回は強制実行
+            switchTab('predictions', false);
         }
     </script>
 
