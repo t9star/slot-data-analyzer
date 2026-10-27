@@ -563,7 +563,53 @@
             text-overflow: ellipsis;
         }
 
-        /* ボトムナビゲーションバー（常時表示、大画面PCのみ非表示） */
+        /* 上部デスクトップタブバー (PC/タブレット向け) */
+        .desktop-tabs {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .desktop-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .desktop-tab-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 16px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .desktop-tab-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .desktop-tab-btn.active {
+            background: linear-gradient(135deg, rgba(0, 186, 242, 0.25) 0%, rgba(255, 51, 102, 0.2) 100%);
+            border: 1px solid var(--accent-color);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(0, 186, 242, 0.25);
+        }
+
+        /* ボトムナビゲーションバー（スマホ専用） */
         .bottom-nav {
             display: flex;
             position: fixed;
@@ -579,7 +625,7 @@
             justify-content: space-around;
             align-items: center;
             box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
-            padding-bottom: env(safe-area-inset-bottom); /* iOS セーフエリア対応 */
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .bottom-nav-item {
@@ -614,25 +660,35 @@
             font-weight: 600;
         }
 
-        /* 大画面PC向け：ボトムナビを非表示にし、全セクション表示 */
-        @media (min-width: 1200px) {
+        /* PC（769px以上）はボトムナビを隠し、上部タブバーを表示 */
+        @media (min-width: 769px) {
             .bottom-nav {
                 display: none !important;
             }
+            body {
+                padding-bottom: 30px !important;
+            }
         }
 
-        /* モバイル・タブレット向けの微調整 */
-        body {
-            padding-bottom: 85px;
+        /* スマホ（768px以下）は上部タブバーを隠し、ボトムナビを表示 */
+        @media (max-width: 768px) {
+            .desktop-tabs {
+                display: none !important;
+            }
+            body {
+                padding-bottom: 85px !important;
+            }
         }
+
+        /* 全画面共通：タブで選択されたセクションのみを表示（縦長を解消） */
         .mobile-section {
             display: none;
         }
         .mobile-section.active-section {
             display: block !important;
-            animation: fadeInSection 0.3s ease;
+            animation: fadeInSection 0.25s ease;
         }
-        /* テーブルカラムのレスポンシブ非表示（タッチデバイス） */
+
         @media (max-width: 1199px) {
             .col-recorded-days, .col-machine-avg-diff {
                 display: none !important;
@@ -712,6 +768,25 @@
                 <p>蓄積データ期間: {{ start_date }} ～ {{ end_date }}</p>
             </div>
         </header>
+
+        <!-- 上部デスクトップタブナビゲーション（PC・大画面向け タブ切り替え） -->
+        <nav class="desktop-tabs">
+            <button class="desktop-tab-btn active" id="desk-tab-predictions" onclick="switchTab('predictions', true)">
+                🎯 狙い台AI予想
+            </button>
+            <button class="desktop-tab-btn" id="desk-tab-allslots" onclick="switchTab('allslots', true)">
+                🎰 全台データ＆スランプ
+            </button>
+            <button class="desktop-tab-btn" id="desk-tab-calendar" onclick="switchTab('calendar', true)">
+                📅 店舗実績カレンダー
+            </button>
+            <button class="desktop-tab-btn" id="desk-tab-habits" onclick="switchTab('habits', true)">
+                📊 出玉傾向・癖分析
+            </button>
+            <button class="desktop-tab-btn" id="desk-tab-validation" onclick="switchTab('validation', true)">
+                🔍 ホール公約・実績検証
+            </button>
+        </nav>
 
         <!-- 店舗実績カレンダー -->
         <div id="section-calendar" class="mobile-section">
@@ -1571,23 +1646,23 @@
 
     <!-- スマホ専用ボトムナビゲーションバー -->
     <div class="bottom-nav">
-        <div class="bottom-nav-item active" id="tab-btn-predictions" onclick="switchMobileTab('predictions', true)">
+        <div class="bottom-nav-item active" id="tab-btn-predictions" onclick="switchTab('predictions', true)">
             <span class="bottom-nav-icon">🎯</span>
             <span class="bottom-nav-label">期待予測</span>
         </div>
-        <div class="bottom-nav-item" id="tab-btn-allslots" onclick="switchMobileTab('allslots', true)">
+        <div class="bottom-nav-item" id="tab-btn-allslots" onclick="switchTab('allslots', true)">
             <span class="bottom-nav-icon">🎰</span>
             <span class="bottom-nav-label">全台データ</span>
         </div>
-        <div class="bottom-nav-item" id="tab-btn-calendar" onclick="switchMobileTab('calendar', true)">
+        <div class="bottom-nav-item" id="tab-btn-calendar" onclick="switchTab('calendar', true)">
             <span class="bottom-nav-icon">📅</span>
             <span class="bottom-nav-label">カレンダー</span>
         </div>
-        <div class="bottom-nav-item" id="tab-btn-habits" onclick="switchMobileTab('habits', true)">
+        <div class="bottom-nav-item" id="tab-btn-habits" onclick="switchTab('habits', true)">
             <span class="bottom-nav-icon">📊</span>
             <span class="bottom-nav-label">癖分析</span>
         </div>
-        <div class="bottom-nav-item" id="tab-btn-validation" onclick="switchMobileTab('validation', true)">
+        <div class="bottom-nav-item" id="tab-btn-validation" onclick="switchTab('validation', true)">
             <span class="bottom-nav-icon">🔍</span>
             <span class="bottom-nav-label">実績検証</span>
         </div>
@@ -2868,12 +2943,14 @@
         }
 
         // 台番号個別詳細＆スランプグラフモーダル表示
+        // 台番号個別詳細＆スランプグラフモーダル表示
         function showSlotHistory(slotNumber, event) {
             if (event) {
                 event.stopPropagation();
                 event.preventDefault();
             }
             
+            const backdrop = document.getElementById('slot-modal-backdrop');
             const modal = document.getElementById('slot-history-modal');
             const slotNumEl = document.getElementById('modal-slot-number');
             const machineEl = document.getElementById('modal-slot-machine');
@@ -2885,35 +2962,14 @@
             if (summaryEl) summaryEl.textContent = '直近10日間データ';
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--accent-color); padding:20px;">履歴データを取得中...</td></tr>';
             
-            // モーダルを画面中央に配置
-            const modalWidth = Math.min(620, window.innerWidth - 20);
-            const left = Math.max(10, (window.innerWidth - modalWidth) / 2);
-            const top = Math.max(20, Math.min(80, (window.innerHeight - 560) / 2));
-            
-            modal.style.left = left + 'px';
-            modal.style.top = top + 'px';
-            modal.style.display = 'block';
-            
-            // 外側クリック検出用のイベントリスナーを登録（1回のみ）
-            if (!window.slotHistoryOuterClickListenerRegistered) {
-                document.addEventListener('click', function(e) {
-                    const m = document.getElementById('slot-history-modal');
-                    if (m && m.style.display === 'block') {
-                        // モーダルの内側クリック・台番号セルクリックは無視
-                        const isModalInside = m.contains(e.target);
-                        const isSlotCell = e.target.closest('[onclick*="showSlotHistory"]');
-                        if (!isModalInside && !isSlotCell) {
-                            closeSlotHistory();
-                        }
-                    }
-                });
-                window.slotHistoryOuterClickListenerRegistered = true;
-            }
+            // 背景オーバーレイとモーダルを画面中央に表示
+            if (backdrop) backdrop.style.display = 'block';
+            if (modal) modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // 背景スクロールを防止
             
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
             if (isLocal) {
-                // ローカル環境の場合は API から最新履歴を非同期取得
                 fetch(`/api/slot/history?slot_number=${slotNumber}`)
                     .then(res => res.json())
                     .then(data => {
@@ -2925,17 +2981,17 @@
                     })
                     .catch(err => {
                         console.error('Failed to fetch local slot history', err);
-                        // ローカルAPI取得に失敗した場合は、インラインデータへのフォールバックを試みる
                         fallbackToInlineHistory(slotNumber, machineEl, tbody);
                     });
             } else {
-                // 本番環境 (GitHub Pages) はインラインの同期データから取得
                 fallbackToInlineHistory(slotNumber, machineEl, tbody);
             }
         }
 
         function fallbackToInlineHistory(slotNumber, machineEl, tbody) {
-            const history = (typeof slotHistoryData !== 'undefined' && slotHistoryData[slotNumber]) ? slotHistoryData[slotNumber] : [];
+            const history = (typeof slotHistoryData !== 'undefined' && (slotHistoryData[slotNumber] || slotHistoryData[String(slotNumber)])) 
+                ? (slotHistoryData[slotNumber] || slotHistoryData[String(slotNumber)]) 
+                : [];
             renderHistoryRows(history, machineEl, tbody);
         }
 
@@ -2988,8 +3044,11 @@
         }
         
         function closeSlotHistory() {
+            const backdrop = document.getElementById('slot-modal-backdrop');
             const modal = document.getElementById('slot-history-modal');
+            if (backdrop) backdrop.style.display = 'none';
             if (modal) modal.style.display = 'none';
+            document.body.style.overflow = '';
         }
 
         function initEnvironmentCheck() {
@@ -3028,59 +3087,60 @@
         let lastWindowWidth = window.innerWidth;
         let lastWindowHeight = window.innerHeight;
 
-        function switchMobileTab(tabId, shouldScroll = false) {
-            if (!isMobileMode()) return;
+        let activeTab = 'predictions';
+
+        function switchTab(tabId, shouldScroll = false) {
+            activeTab = tabId;
             
-            activeMobileTab = tabId;
+            // 1. デスクトップタブのアクティブ切り替え
+            document.querySelectorAll('.desktop-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const deskBtn = document.getElementById(`desk-tab-${tabId}`);
+            if (deskBtn) deskBtn.classList.add('active');
             
-            // 1. ボトムナビのボタンのアクティブクラス切り替え
+            // 2. ボトムナビのアクティブ切り替え
             document.querySelectorAll('.bottom-nav-item').forEach(item => {
                 item.classList.remove('active');
             });
-            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-            if (activeBtn) activeBtn.classList.add('active');
+            const mobileBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (mobileBtn) mobileBtn.classList.add('active');
             
-            // 2. セクションの表示非表示切り替え
+            // 3. セクションの表示非表示切り替え (PC・スマホ問わずタブ選択されたセクションのみ表示)
             document.querySelectorAll('.mobile-section').forEach(sec => {
                 sec.classList.remove('active-section');
             });
-            const activeSec = document.getElementById(`section-${tabId}`);
-            if (activeSec) activeSec.classList.add('active-section');
+            const targetSec = document.getElementById(`section-${tabId}`);
+            if (targetSec) targetSec.classList.add('active-section');
             
-            // 3. ページトップへスクロール（ユーザーの明示的なクリック時のみ）
+            // 4. 全台データタブの場合はビューアーの初期化を確実に担保
+            if (tabId === 'allslots') {
+                initAllSlotsViewer();
+            }
+            
+            // 5. カレンダータブの場合はカレンダー描画を確実に担保
+            if (tabId === 'calendar') {
+                renderCalendar();
+            }
+            
+            // 6. ユーザーの明示的なクリック時のみページトップへスクロール
             if (shouldScroll) {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
             
-            // Plotlyのレイアウトが崩れないように自動リサイズをトリガーする
+            // Plotlyの自動リサイズ
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
             }, 100);
         }
 
-        // スマホ・PC環境の自動初期化とリサイズ監視
+        // 互換性エイリアス
+        function switchMobileTab(tabId, shouldScroll = false) {
+            switchTab(tabId, shouldScroll);
+        }
+
         function initMobileLayout(force = false) {
-            const currentWidth = window.innerWidth;
-            const currentHeight = window.innerHeight;
-            
-            // ウインドウの幅も高さも変わっていない場合は、Plotly等の自動リサイズなので無視する
-            if (!force && currentWidth === lastWindowWidth && currentHeight === lastWindowHeight) {
-                return;
-            }
-            
-            lastWindowWidth = currentWidth;
-            lastWindowHeight = currentHeight;
-            
-            if (isMobileMode()) {
-                // スマホ・タブレット環境 → タブモードで動作 (自動リサイズなのでスクロールはさせない)
-                switchMobileTab(activeMobileTab, false);
-            } else {
-                // 大画面PC → 全セクション表示
-                document.querySelectorAll('.mobile-section').forEach(sec => {
-                    sec.classList.remove('active-section');
-                    sec.style.display = '';
-                });
-            }
+            switchTab(activeTab, false);
         }
 
         window.addEventListener('resize', () => initMobileLayout(false));
@@ -3099,7 +3159,11 @@
     </script>
 
     <!-- 台番号個別詳細＆スランプグラフモーダル -->
-    <div id="slot-history-modal" style="display: none; position: fixed; width: 620px; max-width: calc(100vw - 20px); max-height: 90vh; overflow-y: auto; background: #11131c; border: 2px solid var(--primary-color); border-radius: 16px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.9), 0 0 25px rgba(0,186,242,0.3); z-index: 99999; animation: modalFadeIn 0.2s ease-out; box-sizing: border-box;">
+    <!-- スランプグラフモーダル用 暗い半透明背景（タップで閉じる） -->
+    <div id="slot-modal-backdrop" onclick="closeSlotHistory()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 99998; animation: modalFadeIn 0.2s ease-out;"></div>
+
+    <!-- 台番号個別詳細＆スランプグラフモーダル本体（画面中央に完全センタリング） -->
+    <div id="slot-history-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 640px; max-width: calc(100vw - 20px); max-height: 90vh; overflow-y: auto; background: #11131c; border: 2px solid var(--primary-color); border-radius: 16px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.9), 0 0 25px rgba(0,186,242,0.3); z-index: 99999; animation: modalFadeIn 0.2s ease-out; box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 14px;">
             <div>
                 <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
