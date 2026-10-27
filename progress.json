@@ -1,7 +1,7 @@
 {
-  "status": "done",
-  "current": 450,
-  "total": 450,
-  "message": "通常営業日のデータ回収が完了しました！",
-  "updated_at": "2026-10-27 20:18:45"
+  "status": "idle",
+  "current": 0,
+  "total": 0,
+  "message": "待機中",
+  "updated_at": "2026-10-27 20:36:08"
 }

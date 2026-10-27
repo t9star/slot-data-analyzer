@@ -708,7 +708,7 @@
                         </button>
                     </div>
                 </div>
-                <p>ダッシュボード生成日時: 2026-10-27 20:33:30</p>
+                <p>ダッシュボード生成日時: 2026-10-27 20:48:52</p>
                 <p>蓄積データ期間: 2026-03-30 ～ 2026-10-27</p>
             </div>
         </header>
@@ -4670,7 +4670,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-10-24</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">31 - 33</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">Lﾊﾟﾁｽﾛ ﾗﾌﾞ嬢3 Wご指名 / Lﾏｷﾞｱﾚｺｰﾄﾞ</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">Lﾏｷﾞｱﾚｺｰﾄﾞ / Lﾊﾟﾁｽﾛ ﾗﾌﾞ嬢3 Wご指名</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +11,963枚
@@ -4682,7 +4682,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-10-24</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">1726 - 1728</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">沖ﾄﾞｷ!ｺﾞｰｼﾞｬｽ-30 / L彼女、お借りします</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">L彼女、お借りします / 沖ﾄﾞｷ!ｺﾞｰｼﾞｬｽ-30</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +4,965枚
@@ -4694,7 +4694,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-10-20</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">1531 - 1533</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">ﾌｧﾝｷｰｼﾞｬｸﾞﾗｰ2KT / ﾏｲｼﾞｬｸﾞﾗｰV</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">ﾏｲｼﾞｬｸﾞﾗｰV / ﾌｧﾝｷｰｼﾞｬｸﾞﾗｰ2KT</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +6,582枚
@@ -4706,7 +4706,7 @@
                                 <tr>
                                     <td style="font-size: 0.85rem; white-space: nowrap;">2026-10-18</td>
                                     <td style="font-weight: 600; color: #fff; text-align: center; white-space: nowrap; padding: 0 8px;">50 - 52</td>
-                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV / LBｹﾛｯﾄ5</td>
+                                    <td style="font-size: 0.85rem; color: var(--accent-color); font-weight: 600;">LBｹﾛｯﾄ5 / LBﾆｭｰｷﾝｸﾞﾊﾅﾊﾅV</td>
                                     <td style="text-align: center; white-space: nowrap;">
                                         <span class="badge badge-plus" style="font-weight: 800; display: inline-block;">
                                             +6,919枚
@@ -6364,7 +6364,36 @@
                         const lock = document.getElementById('passcode-lock-screen');
                         if (lock) lock.style.display = 'none';
                     };
-                    // =========================================================================
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', hideLock);
+                    } else {
+                        hideLock();
+                    }
+                }
+            } catch (e) {
+                console.error('Storage access blocked:', e);
+            }
+        })();
+
+        function checkPasscode() {
+            const input = document.getElementById('input-passcode').value;
+            const errorEl = document.getElementById('passcode-error');
+            if (btoa(input) === 'MTIzMw==') { // '1233'
+                try {
+                    localStorage.setItem('slot_dashboard_auth', 'MTIzMw==');
+                } catch (e) {
+                    console.error('Storage write blocked:', e);
+                }
+                const lock = document.getElementById('passcode-lock-screen');
+                if (lock) lock.style.display = 'none';
+                initAllSlotsViewer();
+            } else {
+                if (errorEl) errorEl.style.display = 'block';
+                document.getElementById('input-passcode').value = '';
+            }
+        }
+
+        // =========================================================================
         // スランプグラフ描画ロジック (Plotly.js)
         // =========================================================================
         function drawSlumpChart(history) {
@@ -6512,7 +6541,7 @@
                 if (matchRecord) {
                     items.push({
                         slot_number: parseInt(slotNum, 10),
-                        machine_name: matchRecord.machine_name,
+                        machine_name: matchRecord.machine_name || '',
                         games: matchRecord.games || 0,
                         diff: matchRecord.diff || 0,
                         winning: matchRecord.winning || (matchRecord.diff > 0)
@@ -6527,7 +6556,7 @@
                 }
                 if (keyword) {
                     const numMatch = item.slot_number.toString().includes(keyword);
-                    const nameMatch = item.machine_name.toLowerCase().includes(keyword);
+                    const nameMatch = (item.machine_name || '').toLowerCase().includes(keyword);
                     if (!numMatch && !nameMatch) return false;
                 }
                 return true;
@@ -6610,34 +6639,6 @@
                 `;
             });
             tbody.innerHTML = html;
-        }
-
-        if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', hideLock);
-                    } else {
-                        hideLock();
-                    }
-                }
-            } catch (e) {
-                console.error('Storage access blocked:', e);
-            }
-        })();
-
-        function checkPasscode() {
-            const input = document.getElementById('input-passcode').value;
-            const errorEl = document.getElementById('passcode-error');
-            if (btoa(input) === 'MTIzMw==') { // '1233'
-                try {
-                    localStorage.setItem('slot_dashboard_auth', 'MTIzMw==');
-                } catch (e) {
-                    console.error('Storage write blocked:', e);
-                }
-                const lock = document.getElementById('passcode-lock-screen');
-                if (lock) lock.style.display = 'none';
-            } else {
-                if (errorEl) errorEl.style.display = 'block';
-                document.getElementById('input-passcode').value = '';
-            }
         }
 
         // 台番号個別詳細＆スランプグラフモーダル表示
