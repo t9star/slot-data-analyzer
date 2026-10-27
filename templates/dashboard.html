@@ -1120,6 +1120,100 @@
             </div>
         </div>
 
+        <!-- 全台データ一覧＆スランプグラフ検索セクション -->
+        <div id="section-allslots" class="mobile-section">
+            <div class="card" style="margin-top: 30px;">
+                <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+                    <div>🎰 全台データ一覧 ＆ スランプグラフ</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: normal;">
+                        データ読み取り元（ゴラッジョ等）完全準拠・全409台対応
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">
+                    指定した日付の全409台の「何番台のどの機種が何回転回って何枚出たか」を一覧表示します。台番号や「📈 グラフ」を押すと直近10日間のスランプグラフが表示されます。
+                </p>
+                
+                <!-- フィルター＆検索コントロールバー -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; margin-bottom: 22px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: center;">
+                        <!-- 日付選択 -->
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px; font-weight: 700;">📅 閲覧対象日:</label>
+                            <select id="allslots-date-select" onchange="filterAllSlotsData()" style="width: 100%; padding: 10px 12px; background: #161a26; border: 1px solid var(--card-border); border-radius: 8px; color: #fff; font-size: 0.9rem; font-family: inherit; font-weight: 600;">
+                                <!-- JSで動的生成 -->
+                            </select>
+                        </div>
+                        
+                        <!-- 機種フィルター -->
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 600;">🏷️ 機種絞り込み:</label>
+                            <select id="allslots-machine-select" onchange="filterAllSlotsData()" style="width: 100%; padding: 10px 12px; background: #161a26; border: 1px solid var(--card-border); border-radius: 8px; color: #fff; font-size: 0.9rem; font-family: inherit;">
+                                <option value="all">全機種 (全409台)</option>
+                                <!-- JSで動的生成 -->
+                            </select>
+                        </div>
+                        
+                        <!-- 台番号・フリーワード検索 -->
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 600;">🔍 台番号 / 機種名検索:</label>
+                            <input type="text" id="allslots-search-input" oninput="filterAllSlotsData()" placeholder="例: 1765 や 北斗" style="width: 100%; padding: 10px 12px; background: #161a26; border: 1px solid var(--card-border); border-radius: 8px; color: #fff; font-size: 0.9rem; font-family: inherit; box-sizing: border-box;">
+                        </div>
+                        
+                        <!-- 並び替えソート -->
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 600;">📶 並び順:</label>
+                            <select id="allslots-sort-select" onchange="filterAllSlotsData()" style="width: 100%; padding: 10px 12px; background: #161a26; border: 1px solid var(--card-border); border-radius: 8px; color: #fff; font-size: 0.9rem; font-family: inherit;">
+                                <option value="diff_desc">差枚数順 (出玉ランキング 📈)</option>
+                                <option value="diff_asc">差枚数順 (少ない順/凹み 📉)</option>
+                                <option value="games_desc">回転数順 (高稼働順 🔄)</option>
+                                <option value="slot_asc">台番号順 (昇順 🔢)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 選択日の概況サマリーKPI -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">表示台数</div>
+                        <div id="allslots-kpi-count" style="font-size: 1.35rem; font-weight: 700; color: #fff;">0 台</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">平均差枚数</div>
+                        <div id="allslots-kpi-diff" style="font-size: 1.35rem; font-weight: 700; color: #fff;">0 枚</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">平均ゲーム数</div>
+                        <div id="allslots-kpi-games" style="font-size: 1.35rem; font-weight: 700; color: #fff;">0 G</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">勝率 (プラス台)</div>
+                        <div id="allslots-kpi-winrate" style="font-size: 1.35rem; font-weight: 700; color: #fff;">0%</div>
+                    </div>
+                </div>
+
+                <!-- 全台テーブル -->
+                <div class="table-container" style="max-height: 600px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 12px; background: rgba(0,0,0,0.2);">
+                    <table>
+                        <thead style="position: sticky; top: 0; background: #161a26; z-index: 10;">
+                            <tr>
+                                <th style="width: 50px; text-align: center;">#</th>
+                                <th style="width: 95px; text-align: center;">台番号</th>
+                                <th>機種名</th>
+                                <th style="width: 110px; text-align: right;">回転数</th>
+                                <th style="width: 120px; text-align: right;">差枚数</th>
+                                <th style="width: 85px; text-align: center;">勝敗</th>
+                                <th style="width: 90px; text-align: center;">グラフ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allslots-table-tbody">
+                            <!-- JSで動的描画 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- 直近の出玉傾向 ＆ 設定推測サマリー -->
         <div id="section-habits" class="mobile-section">
             <div class="card trends-card" style="margin-top: 30px;">
@@ -1480,6 +1574,10 @@
         <div class="bottom-nav-item active" id="tab-btn-predictions" onclick="switchMobileTab('predictions', true)">
             <span class="bottom-nav-icon">🎯</span>
             <span class="bottom-nav-label">期待予測</span>
+        </div>
+        <div class="bottom-nav-item" id="tab-btn-allslots" onclick="switchMobileTab('allslots', true)">
+            <span class="bottom-nav-icon">🎰</span>
+            <span class="bottom-nav-label">全台データ</span>
         </div>
         <div class="bottom-nav-item" id="tab-btn-calendar" onclick="switchMobileTab('calendar', true)">
             <span class="bottom-nav-icon">📅</span>
@@ -2492,7 +2590,255 @@
                         const lock = document.getElementById('passcode-lock-screen');
                         if (lock) lock.style.display = 'none';
                     };
-                    if (document.readyState === 'loading') {
+                    // =========================================================================
+        // スランプグラフ描画ロジック (Plotly.js)
+        // =========================================================================
+        function drawSlumpChart(history) {
+            const chartDiv = document.getElementById('modal-slump-chart');
+            if (!chartDiv) return;
+            
+            if (typeof Plotly === 'undefined') {
+                chartDiv.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">グラフライブラリを読み込み中...</div>';
+                return;
+            }
+            
+            // history は新しい日付順（降順）で渡されるので、グラフ描画用に古い順（時系列昇順）にする
+            const chronological = [...history].reverse();
+            
+            // 累計差枚推移の計算
+            let cumulative = 0;
+            const xDates = [];
+            const yCumulative = [];
+            const textLabels = [];
+            
+            chronological.forEach(h => {
+                cumulative += h.diff;
+                xDates.push(h.date.slice(5)); // 'MM-DD' 形式
+                yCumulative.push(cumulative);
+                const sign = h.diff >= 0 ? '+' : '';
+                const cumSign = cumulative >= 0 ? '+' : '';
+                textLabels.push(`${h.date}<br>当日差枚: ${sign}${h.diff.toLocaleString()}枚<br>回転数: ${(h.games || 0).toLocaleString()}G<br>累計: ${cumSign}${cumulative.toLocaleString()}枚`);
+            });
+            
+            const isPlus = cumulative >= 0;
+            const mainColor = isPlus ? '#00e676' : '#ff1744';
+            
+            const trace = {
+                x: xDates,
+                y: yCumulative,
+                mode: 'lines+markers',
+                name: '累計差枚',
+                line: {
+                    color: mainColor,
+                    width: 3.5,
+                    shape: 'spline'
+                },
+                marker: {
+                    size: 7,
+                    color: '#fff',
+                    line: {
+                        color: mainColor,
+                        width: 2
+                    }
+                },
+                hoverinfo: 'text',
+                hovertext: textLabels,
+                fill: 'tozeroy',
+                fillcolor: isPlus ? 'rgba(0, 230, 118, 0.12)' : 'rgba(255, 23, 68, 0.12)'
+            };
+            
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: { t: 20, b: 35, l: 55, r: 20 },
+                xaxis: {
+                    gridcolor: 'rgba(255,255,255,0.06)',
+                    color: '#9ca3af',
+                    tickfont: { size: 10, family: 'Inter, sans-serif' }
+                },
+                yaxis: {
+                    gridcolor: 'rgba(255,255,255,0.08)',
+                    zerolinecolor: 'rgba(255,255,255,0.35)',
+                    zerolinewidth: 1.5,
+                    color: '#9ca3af',
+                    tickfont: { size: 10, family: 'Inter, sans-serif' },
+                    ticksuffix: '枚'
+                },
+                showlegend: false
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: false
+            };
+            
+            Plotly.newPlot(chartDiv, [trace], layout, config);
+        }
+
+        // =========================================================================
+        // 全台データ一覧＆検索ビューアー ロジック
+        // =========================================================================
+        function initAllSlotsViewer() {
+            if (typeof slotHistoryData === 'undefined') return;
+            
+            const allDatesSet = new Set();
+            const allMachinesSet = new Set();
+            
+            Object.keys(slotHistoryData).forEach(slotNum => {
+                const records = slotHistoryData[slotNum] || [];
+                records.forEach(r => {
+                    if (r.date) allDatesSet.add(r.date);
+                    if (r.machine_name) allMachinesSet.add(r.machine_name);
+                });
+            });
+            
+            const sortedDates = Array.from(allDatesSet).sort().reverse();
+            const sortedMachines = Array.from(allMachinesSet).sort();
+            
+            // 日付セレクトボックス構築
+            const dateSelect = document.getElementById('allslots-date-select');
+            if (dateSelect) {
+                dateSelect.innerHTML = sortedDates.map((d, idx) => {
+                    const label = idx === 0 ? `${d} (最新/昨日)` : (idx === 1 ? `${d} (一昨日)` : d);
+                    return `<option value="${d}">${label}</option>`;
+                }).join('');
+            }
+            
+            // 機種セレクトボックス構築
+            const machineSelect = document.getElementById('allslots-machine-select');
+            if (machineSelect) {
+                let options = '<option value="all">全機種 (全409台)</option>';
+                sortedMachines.forEach(m => {
+                    options += `<option value="${m}">${m}</option>`;
+                });
+                machineSelect.innerHTML = options;
+            }
+            
+            filterAllSlotsData();
+        }
+
+        function filterAllSlotsData() {
+            const dateSelect = document.getElementById('allslots-date-select');
+            const machineSelect = document.getElementById('allslots-machine-select');
+            const searchInput = document.getElementById('allslots-search-input');
+            const sortSelect = document.getElementById('allslots-sort-select');
+            const tbody = document.getElementById('allslots-table-tbody');
+            
+            if (!dateSelect || !tbody || typeof slotHistoryData === 'undefined') return;
+            
+            const targetDate = dateSelect.value;
+            const targetMachine = machineSelect ? machineSelect.value : 'all';
+            const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const sortBy = sortSelect ? sortSelect.value : 'diff_desc';
+            
+            const items = [];
+            Object.keys(slotHistoryData).forEach(slotNum => {
+                const records = slotHistoryData[slotNum] || [];
+                const matchRecord = records.find(r => r.date === targetDate);
+                if (matchRecord) {
+                    items.push({
+                        slot_number: parseInt(slotNum, 10),
+                        machine_name: matchRecord.machine_name,
+                        games: matchRecord.games || 0,
+                        diff: matchRecord.diff || 0,
+                        winning: matchRecord.winning || (matchRecord.diff > 0)
+                    });
+                }
+            });
+            
+            // 絞り込みフィルター
+            let filtered = items.filter(item => {
+                if (targetMachine !== 'all' && item.machine_name !== targetMachine) {
+                    return false;
+                }
+                if (keyword) {
+                    const numMatch = item.slot_number.toString().includes(keyword);
+                    const nameMatch = item.machine_name.toLowerCase().includes(keyword);
+                    if (!numMatch && !nameMatch) return false;
+                }
+                return true;
+            });
+            
+            // 並び替えソート
+            filtered.sort((a, b) => {
+                if (sortBy === 'diff_desc') return b.diff - a.diff;
+                if (sortBy === 'diff_asc') return a.diff - b.diff;
+                if (sortBy === 'games_desc') return b.games - a.games;
+                if (sortBy === 'slot_asc') return a.slot_number - b.slot_number;
+                return 0;
+            });
+            
+            // KPIサマリー更新
+            const countEl = document.getElementById('allslots-kpi-count');
+            const diffEl = document.getElementById('allslots-kpi-diff');
+            const gamesEl = document.getElementById('allslots-kpi-games');
+            const winrateEl = document.getElementById('allslots-kpi-winrate');
+            
+            const count = filtered.length;
+            let totalDiff = 0;
+            let totalGames = 0;
+            let winCount = 0;
+            
+            filtered.forEach(it => {
+                totalDiff += it.diff;
+                totalGames += it.games;
+                if (it.winning) winCount++;
+            });
+            
+            if (countEl) countEl.textContent = `${count.toLocaleString()} 台`;
+            if (diffEl) {
+                const avgDiff = count > 0 ? Math.round(totalDiff / count) : 0;
+                diffEl.textContent = `${avgDiff > 0 ? '+' : ''}${avgDiff.toLocaleString()} 枚`;
+                diffEl.style.color = avgDiff > 0 ? 'var(--success-color)' : (avgDiff < 0 ? 'var(--danger-color)' : '#fff');
+            }
+            if (gamesEl) {
+                const avgGames = count > 0 ? Math.round(totalGames / count) : 0;
+                gamesEl.textContent = `${avgGames.toLocaleString()} G`;
+            }
+            if (winrateEl) {
+                const rate = count > 0 ? ((winCount / count) * 100).toFixed(1) : '0.0';
+                winrateEl.textContent = `${rate}%`;
+                winrateEl.style.color = parseFloat(rate) >= 40 ? 'var(--success-color)' : '#fff';
+            }
+            
+            // テーブル行描画
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">条件に一致する台データがありません。</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            filtered.forEach((it, idx) => {
+                const diffColor = it.diff >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                const diffStr = (it.diff >= 0 ? '+' : '') + it.diff.toLocaleString() + ' 枚';
+                const winBadge = it.winning
+                    ? '<span style="background:rgba(28,126,76,0.2); color:var(--success-color); padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">🌟 勝利</span>'
+                    : '<span style="background:rgba(255,255,255,0.03); color:var(--text-muted); padding:3px 8px; border-radius:4px; font-size:0.75rem;">敗北</span>';
+                    
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+                        <td style="text-align:center; color:var(--text-muted); font-size:0.8rem;">#${idx + 1}</td>
+                        <td style="text-align:center;">
+                            <span onclick="showSlotHistory(${it.slot_number}, event)" style="font-family:'Outfit',sans-serif; font-size:1.1rem; font-weight:800; color:var(--accent-color); cursor:pointer; text-decoration:underline; padding:2px 6px; border-radius:4px; background:rgba(0,186,242,0.08);" title="クリックでスランプグラフを表示">
+                                ${it.slot_number}
+                            </span>
+                        </td>
+                        <td style="font-weight:600; color:#fff;">${it.machine_name}</td>
+                        <td style="text-align:right; font-family:'Outfit',sans-serif; font-weight:600; color:#ccc;">${it.games.toLocaleString()} G</td>
+                        <td style="text-align:right; font-family:'Outfit',sans-serif; font-weight:700; color:${diffColor}; font-size:1.05rem;">${diffStr}</td>
+                        <td style="text-align:center;">${winBadge}</td>
+                        <td style="text-align:center;">
+                            <button onclick="showSlotHistory(${it.slot_number}, event)" style="background:rgba(0,186,242,0.15); border:1px solid var(--accent-color); color:var(--accent-color); padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;" title="スランプグラフを表示">
+                                📈 グラフ
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        if (document.readyState === 'loading') {
                         document.addEventListener('DOMContentLoaded', hideLock);
                     } else {
                         hideLock();
@@ -2520,9 +2866,8 @@
             }
         }
 
-        // 台番号個別データ履歴モーダル表示
+        // 台番号個別詳細＆スランプグラフモーダル表示
         function showSlotHistory(slotNumber, event) {
-            // バブリングを最初に止める（外側クリックの即時閉じを防ぐ）
             if (event) {
                 event.stopPropagation();
                 event.preventDefault();
@@ -2531,38 +2876,18 @@
             const modal = document.getElementById('slot-history-modal');
             const slotNumEl = document.getElementById('modal-slot-number');
             const machineEl = document.getElementById('modal-slot-machine');
+            const summaryEl = document.getElementById('modal-slot-summary');
             const tbody = document.getElementById('modal-history-tbody');
             
             slotNumEl.textContent = slotNumber;
             machineEl.textContent = '読み込み中...';
+            if (summaryEl) summaryEl.textContent = '直近10日間データ';
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--accent-color); padding:20px;">履歴データを取得中...</td></tr>';
             
-            // 吹き出し（ポップオーバー）の位置を設定
-            const popupWidth = 330;
-            const popupHeight = 350; // 目安の高さ
-            
-            let left = (window.innerWidth - popupWidth) / 2;
-            let top = window.scrollY + 150; // デフォルトは画面中央付近
-            
-            if (event && (event.clientX || event.clientY)) {
-                const cx = event.clientX || 0;
-                const cy = event.clientY || 100;
-                
-                left = cx - (popupWidth / 2);
-                top = cy + 20;
-                
-                // 画面端のはみ出し防止
-                if (left < 10) left = 10;
-                if (left + popupWidth > window.innerWidth - 10) {
-                    left = window.innerWidth - popupWidth - 10;
-                }
-                
-                // 下端のはみ出し防止（viewportの高さを基準）
-                if (top + popupHeight > window.innerHeight - 10) {
-                    top = cy - popupHeight - 15;
-                }
-                if (top < 10) top = 10;
-            }
+            // モーダルを画面中央に配置
+            const modalWidth = Math.min(620, window.innerWidth - 20);
+            const left = Math.max(10, (window.innerWidth - modalWidth) / 2);
+            const top = Math.max(20, Math.min(80, (window.innerHeight - 560) / 2));
             
             modal.style.left = left + 'px';
             modal.style.top = top + 'px';
@@ -2623,22 +2948,42 @@
             machineEl.textContent = history[0].machine_name;
             
             let html = '';
+            let totalDiff = 0;
+            let totalGames = 0;
+            let winCount = 0;
+
             history.forEach(h => {
                 const diffVal = h.diff;
+                totalDiff += diffVal;
+                totalGames += (h.games || 0);
+                if (h.winning) winCount++;
+
                 const diffColor = diffVal >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
                 const diffText = (diffVal >= 0 ? '+' : '') + diffVal.toLocaleString() + ' 枚';
                 const winBadge = h.winning ? '<span style="background:rgba(28,126,76,0.2); color:var(--success-color); padding:2px 6px; border-radius:4px; font-size:0.75rem;">🌟 勝利</span>' : '<span style="background:rgba(255,255,255,0.03); color:var(--text-muted); padding:2px 6px; border-radius:4px; font-size:0.75rem;">敗北</span>';
                 
                 html += `
                     <tr>
-                        <td style="font-family:monospace; padding: 6px 4px;">${h.date}</td>
-                        <td style="padding: 6px 4px;">${h.games.toLocaleString()} G</td>
-                        <td style="padding: 6px 4px;"><span style="color:${diffColor}; font-weight:600;">${diffText}</span></td>
-                        <td style="padding: 6px 4px;">${winBadge}</td>
+                        <td style="font-family:monospace; padding: 6px 6px;">${h.date}</td>
+                        <td style="padding: 6px 6px; text-align: right; color: #ccc;">${(h.games || 0).toLocaleString()} G</td>
+                        <td style="padding: 6px 6px; text-align: right; font-weight: bold; color: ${diffColor};">${diffText}</td>
+                        <td style="padding: 6px 6px; text-align: center;">${winBadge}</td>
                     </tr>
                 `;
             });
             tbody.innerHTML = html;
+
+            // サマリーテキストの更新
+            const summaryEl = document.getElementById('modal-slot-summary');
+            if (summaryEl) {
+                const days = history.length;
+                const winRate = ((winCount / days) * 100).toFixed(1);
+                const avgG = Math.round(totalGames / days);
+                summaryEl.innerHTML = `直近${days}日間累計: <b style="color:${totalDiff >= 0 ? 'var(--success-color)' : 'var(--danger-color)'}">${totalDiff >= 0 ? '+' : ''}${totalDiff.toLocaleString()}枚</b> ｜ 平均回転数: <b>${avgG.toLocaleString()}G</b> ｜ 勝率: <b>${winRate}%</b> (${winCount}勝${days - winCount}敗)`;
+            }
+
+            // スランプグラフの描画
+            drawSlumpChart(history);
         }
         
         function closeSlotHistory() {
@@ -2742,33 +3087,50 @@
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 initEnvironmentCheck();
+                initAllSlotsViewer();
                 initMobileLayout(true); // 初回は強制実行
             });
         } else {
             initEnvironmentCheck();
+            initAllSlotsViewer();
             initMobileLayout(true); // 初回は強制実行
         }
     </script>
 
-    <!-- 台番号個別履歴ポップオーバー（吹き出し形式） -->
-    <div id="slot-history-modal" style="display: none; position: fixed; width: 335px; max-width: calc(100vw - 20px); background: #111; border: 2px solid var(--primary-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.85), 0 0 15px rgba(0,186,242,0.25); z-index: 99999; animation: modalFadeIn 0.2s ease-out;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px;">
-            <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;">
-                🎰 <span id="modal-slot-number" style="color: var(--accent-color); font-weight: 800;">-</span> 番台 過去履歴 (直近10日)
-            </h3>
-            <span onclick="closeSlotHistory()" style="color: var(--text-muted); cursor: pointer; font-size: 1.3rem; font-weight: bold; transition: color 0.2s; padding: 0 4px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
+    <!-- 台番号個別詳細＆スランプグラフモーダル -->
+    <div id="slot-history-modal" style="display: none; position: fixed; width: 620px; max-width: calc(100vw - 20px); max-height: 90vh; overflow-y: auto; background: #11131c; border: 2px solid var(--primary-color); border-radius: 16px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.9), 0 0 25px rgba(0,186,242,0.3); z-index: 99999; animation: modalFadeIn 0.2s ease-out; box-sizing: border-box;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 14px;">
+            <div>
+                <h3 id="modal-slot-title" style="margin: 0; color: #fff; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    🎰 <span id="modal-slot-number" style="color: var(--accent-color); font-weight: 800; font-size: 1.4rem;">-</span> 番台
+                    <span id="modal-slot-machine" style="font-size: 1rem; color: #fff; font-weight: 600; margin-left: 4px;">-</span>
+                </h3>
+                <div id="modal-slot-summary" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">
+                    直近10日間データ
+                </div>
+            </div>
+            <span onclick="closeSlotHistory()" style="color: var(--text-muted); cursor: pointer; font-size: 1.6rem; font-weight: bold; line-height: 1; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.05);" onmouseover="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.color='var(--text-muted)'; this.style.background='rgba(255,255,255,0.05)'">&times;</span>
         </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
-            対象機種: <span id="modal-slot-machine" style="color: #fff; font-weight: 600;">-</span>
+
+        <!-- スランプグラフ表示エリア -->
+        <div style="margin-bottom: 16px;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-color); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                <span>📈 直近10日間のスランプ推移 (累計差枚グラフ)</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">※0枚ライン基準</span>
+            </div>
+            <div id="modal-slump-chart" style="width: 100%; height: 210px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"></div>
         </div>
-        <div class="table-container" style="max-height: 280px; overflow-y: auto; background: rgba(0,0,0,0.25); border-radius: 6px;">
-            <table style="font-size: 0.82rem; width: 100%; border-collapse: collapse;">
-                <thead>
+
+        <!-- 日別履歴テーブル -->
+        <div style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 6px;">📅 直近10日間の日別詳細成績</div>
+        <div class="table-container" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+            <table style="font-size: 0.85rem; width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: #1a1e2b;">
                     <tr>
-                        <th style="padding: 6px 4px; text-align: left;">日付</th>
-                        <th style="padding: 6px 4px; text-align: right;">ゲーム数</th>
-                        <th style="padding: 6px 4px; text-align: right;">差枚数</th>
-                        <th style="padding: 6px 4px; text-align: center;">勝敗</th>
+                        <th style="padding: 7px 8px; text-align: left;">日付</th>
+                        <th style="padding: 7px 8px; text-align: right;">ゲーム数</th>
+                        <th style="padding: 7px 8px; text-align: right;">差枚数</th>
+                        <th style="padding: 7px 8px; text-align: center;">勝敗</th>
                     </tr>
                 </thead>
                 <tbody id="modal-history-tbody">
