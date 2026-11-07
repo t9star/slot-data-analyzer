@@ -1,7 +1,7 @@
 {
-  "status": "idle",
-  "current": 0,
-  "total": 0,
-  "message": "待機中",
-  "updated_at": "2026-10-27 20:36:08"
+  "status": "running",
+  "current": 450,
+  "total": 450,
+  "message": "ダッシュボードを再生成しています...",
+  "updated_at": "2026-11-07 21:49:01"
 }
